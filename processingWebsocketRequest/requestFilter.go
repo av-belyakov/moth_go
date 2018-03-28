@@ -26,6 +26,15 @@ type CurrentListFilesFiltering struct {
 	ErrMsg     error
 }
 
+//PatternParametersFiltering содержит данные необходимые для подготовки шаблона
+type PatternParametersFiltering struct {
+	ParameterFilter        *configure.MessageTypeFilter
+	DirectoryName          string
+	TypeAreaNetwork        int
+	PathStorageFilterFiles string
+	ListFiles              []string
+}
+
 func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTask *configure.InformationTaskFilter) {
 	var currentListFilesFiltering CurrentListFilesFiltering
 	currentListFilesFiltering.Path = disk
@@ -110,15 +119,77 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 	return fullCountFiles, fullSizeFiles
 }
 
-//формируем шаблон для фильтрации\
-func patternBashScript(mft *configure.MessageTypeFilter) string {
-	fmt.Println(mft)
-	return ""
+//формируем шаблон для фильтрации
+func patternBashScript(patternParametersFiltering *PatternParametersFiltering) string {
+	getIPAddressString := func(ipaddreses []string) (searchHosts string) {
+		num := 0
+		if len(ipaddreses) != 0 {
+			if len(ipaddreses) == 1 {
+				searchHosts += " host " + ipaddreses[0]
+			} else {
+				for _, ip := range ipaddreses {
+					searchHosts += " host " + ip
+					if num < (len(ipaddreses) - 1) {
+						searchHosts += " or"
+					}
+					num++
+				}
+			}
+		}
+		return searchHosts
+	}
+
+	getNetworksString := func(networks []string) (searchNetworks string) {
+		num := 0
+		if len(networks) != 0 {
+			if len(networks) == 1 {
+				searchNetworks += " net " + networks[0]
+			} else {
+				for _, net := range networks {
+					searchNetworks += " host " + net
+					if num < (len(networks) - 1) {
+						searchNetworks += " or"
+					}
+					num++
+				}
+			}
+		}
+		return searchNetworks
+	}
+
+	fmt.Println("function patternBashScript START...")
+
+	bind := " "
+	//формируем строку для поиска хостов
+	searchHosts := getIPAddressString(patternParametersFiltering.ParameterFilter.Info.Settings.IPAddress)
+
+	//формируем строку для поиска сетей
+	searchNetwork := getNetworksString(patternParametersFiltering.ParameterFilter.Info.Settings.Network)
+
+	if len(patternParametersFiltering.ParameterFilter.Info.Settings.IPAddress) > 0 && len(patternParametersFiltering.ParameterFilter.Info.Settings.Network) > 0 {
+		bind = " or"
+	}
+
+	stringItemFiles := strings.Join(patternParametersFiltering.ListFiles, " ")
+	listTypeArea := map[int]string{
+		1: "",
+		2: " '(vlan or ip)' and ",
+		3: " '(pppoes && ip)' and ",
+	}
+
+	pattern := "for files in " + stringItemFiles + "; do "
+	pattern += " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files "
+	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + searchHosts + bind + searchNetwork
+	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/`echo $files`;"
+	pattern += " done;"
+	pattern += " echo 'completed:" + patternParametersFiltering.DirectoryName + "';"
+
+	return pattern
 }
 
 //выполнение фильтрации
-func filterProcessing(mft *configure.MessageTypeFilter) {
-	fmt.Println(patternBashScript(mft))
+func filterProcessing(patternParametersFiltering *PatternParametersFiltering) {
+	fmt.Println(patternBashScript(patternParametersFiltering))
 }
 
 func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
@@ -256,7 +327,17 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 	fmt.Println("***************** STOP requestFilteringStart ************")
 
-	filterProcessing(mft)
+	var patternParametersFiltering PatternParametersFiltering
+	patternParametersFiltering.ParameterFilter = mft
+	patternParametersFiltering.DirectoryName = "/__CURRENT_DISK_1"
+	patternParametersFiltering.TypeAreaNetwork = prf.TypeAreaNetwork
+	patternParametersFiltering.ListFiles = prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter["/__CURRENT_DISK_1"]
+	patternParametersFiltering.PathStorageFilterFiles = prf.PathStorageFilterFiles + prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
+
+	fmt.Println("directory filtering: ", prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering)
+	fmt.Println("path storage filtering: ", prf.PathStorageFilterFiles)
+
+	filterProcessing(&patternParametersFiltering)
 }
 
 /*
