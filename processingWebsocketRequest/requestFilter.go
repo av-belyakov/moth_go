@@ -178,7 +178,7 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 	}
 
 	pattern := "for files in " + stringItemFiles + "; do "
-	pattern += " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files "
+	pattern += " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files"
 	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + searchHosts + bind + searchNetwork
 	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/`echo $files`;"
 	pattern += " done;"
