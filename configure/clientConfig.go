@@ -7,8 +7,6 @@ package configure
 * */
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -67,15 +65,12 @@ func (a *AccessClientsConfigure) IsMaxCountProcessFiltering(remoteIP string) boo
 
 //GetCountDirectoryFiltering получить количество директорий в которых обрабатывается файлы
 func (a *AccessClientsConfigure) GetCountDirectoryFiltering(remoteIP, taskIndex string) int {
-	//return len(a.Addresses[remoteIP].TaskFilter[taskIndex].ListFilesFilter)
 	var num int
 	for _, value := range a.Addresses[remoteIP].TaskFilter[taskIndex].ListFilesFilter {
 		if len(value) > 0 {
 			num++
 		}
 	}
-
-	fmt.Println("COUNT DIRCTORY === ", num)
 	return num
 }
 

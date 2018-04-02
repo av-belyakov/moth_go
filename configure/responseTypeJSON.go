@@ -25,7 +25,7 @@ type FilterCountPattern struct {
 type InfoProcessingFile struct {
 	FileName          string `json:"fileName"`
 	DirectoryLocation string `json:"directoryLocation"`
-	StatusProcessed   string `json:"statusProcessed"`
+	StatusProcessed   bool   `json:"statusProcessed"`
 }
 
 //MessageTypeFilteringStopInfo детальная информация при ОСТАНОВКИ выполнения фильтрации
