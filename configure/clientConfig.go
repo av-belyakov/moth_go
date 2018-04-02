@@ -7,6 +7,8 @@ package configure
 * */
 
 import (
+	"sync"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -34,12 +36,23 @@ type ClientsConfigure struct {
 	IntervalTransmissionInformation int
 	MaxCountProcessFiltering        int
 	WsConnection                    *websocket.Conn
+	mu                              sync.Mutex
 	TaskFilter                      map[string]*InformationTaskFilter
 }
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
 	Addresses map[string]*ClientsConfigure
+}
+
+//SendWsMessage используется для отправки сообщений через протокол websocket
+func (clientsConfigure *ClientsConfigure) SendWsMessage(t int, v []byte) error {
+	clientsConfigure.mu.Lock()
+	defer clientsConfigure.mu.Unlock()
+
+	return clientsConfigure.WsConnection.WriteMessage(t, v)
+	//	return clientsConfigure.WsConnection.WriteJSON(v)
+	//WsConnection.WriteMessage(1, formatJSON)
 }
 
 //IPAddressIsExist поиск ip адреса в срезе AccessIPAddress

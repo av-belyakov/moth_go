@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"regexp"
 	"time"
 )
@@ -163,4 +164,14 @@ func main() {
 		return (symbol == " ")
 	})*/
 	fmt.Printf("%T %v", dateTimeStart, dateTimeStart.Year())
+	go func() {
+
+		fmt.Println("Groution START...")
+
+		err := exec.Command("sh", "-c", "tcpdump -r /__CURRENT_DISK_1/1438535807_2015_08_02____20_16_47_753.tdp host 8.8.8.8 -w /home/TRAFFIC_FILTERS/2016_April_29_14_31_dsod999fvv/1438535807_2015_08_02____20_16_47_753.tdp").Run()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
+
 }

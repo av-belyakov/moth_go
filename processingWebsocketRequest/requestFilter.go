@@ -187,7 +187,7 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 
 	pattern := " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files"
 	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + searchHosts + bind + searchNetwork
-	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/`echo $files`;"
+	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/$files;"
 	pattern += " echo 'completed:" + patternParametersFiltering.DirectoryName + "';"
 
 	return pattern
@@ -209,7 +209,9 @@ func filterProcessing(done chan<- string, patternParametersFiltering *PatternPar
 
 		newPatternBashScript := strings.Replace(patternBashScript, "$files", file, -1)
 
-		_, err := exec.Command("sh", "-c", newPatternBashScript).Output()
+		//		_, err := exec.Command("sh", "-c", newPatternBashScript).Output()
+		err := exec.Command("sh", "-c", newPatternBashScript).Run()
+
 		if err != nil {
 			task.CountFilesUnprocessed += task.CountFilesUnprocessed
 			mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
@@ -234,16 +236,21 @@ func filterProcessing(done chan<- string, patternParametersFiltering *PatternPar
 		mtfeou.Info.CountFilesFound = countFiles
 		mtfeou.Info.CountFoundFilesSize = fullSizeFiles
 
-		fmt.Println(mtfeou)
+		fmt.Println(newPatternBashScript)
+		//		fmt.Printf("%#v", mtfeou)
 
 		formatJSON, err := json.Marshal(&mtfeou)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
+
+		/*		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}*/
 	}
 	done <- patternParametersFiltering.DirectoryName
 
@@ -375,9 +382,12 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 		fmt.Println("SENDING TO CHAN JSON OBJECT COMPLETE")
 
-		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
+		/*if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}*/
 
 		//удаляем задачу
 		delete(prf.AccessClientsConfigure.Addresses[fmfc.RemoteIP].TaskFilter, fmfc.TaskIndex)
@@ -473,9 +483,12 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 	fmt.Println("SENDING TO CHAN JSON OBJECT")
 
-	if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+	if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
+	/*if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}*/
 
 	fmt.Println("WEBSOCKET ERROR: ", err)
 
@@ -551,9 +564,12 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *co
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+	if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
+	/*if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}*/
 
 	delete(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter, mft.Info.TaskIndex)
 }
