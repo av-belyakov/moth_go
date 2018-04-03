@@ -153,9 +153,9 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			return true
 		},
 		EnableCompression: false,
-		ReadBufferSize:    1024,
-		WriteBufferSize:   1024,
-		HandshakeTimeout:  (time.Duration(5) * time.Second),
+		//ReadBufferSize:    1024,
+		//WriteBufferSize:   100000000,
+		HandshakeTimeout: (time.Duration(5) * time.Second),
 	}
 
 	c, err := upgrader.Upgrade(w, req, nil)

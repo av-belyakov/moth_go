@@ -50,9 +50,11 @@ func (clientsConfigure *ClientsConfigure) SendWsMessage(t int, v []byte) error {
 	clientsConfigure.mu.Lock()
 	defer clientsConfigure.mu.Unlock()
 
+	/*if len(v) < 65000 {
+		return clientsConfigure.WsConnection.WriteMessage(t, v)
+	}*/
+
 	return clientsConfigure.WsConnection.WriteMessage(t, v)
-	//	return clientsConfigure.WsConnection.WriteJSON(v)
-	//WsConnection.WriteMessage(1, formatJSON)
 }
 
 //IPAddressIsExist поиск ip адреса в срезе AccessIPAddress

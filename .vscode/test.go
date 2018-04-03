@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os/exec"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -148,6 +152,37 @@ func filesList(){
 */
 
 func main() {
+
+	getPatternNetwork := func(network string) (string, error) {
+		networkTmp := strings.Split(network, "/")
+		if len(networkTmp) < 2 {
+			return "", errors.New("incorrect network mask value")
+		}
+
+		maskInt, err := strconv.ParseInt(networkTmp[1], 10, 64)
+		if err != nil {
+			return "", err
+		}
+
+		if maskInt < 0 || maskInt > 32 {
+			return "", errors.New("the value of 'mask' should be in the range from 0 to 32")
+		}
+
+		ipv4Addr := net.ParseIP(networkTmp[0])
+		ipv4Mask := net.CIDRMask(24, 32)
+		newNetwork := ipv4Addr.Mask(ipv4Mask).String()
+
+		fmt.Println("New network: ", newNetwork+"/"+networkTmp[1])
+
+		return newNetwork, nil
+	}
+
+	res, err := getPatternNetwork("152.89.78.6/24")
+	if err != nil {
+		fmt.Println("Error get PatternNetwork: ", err)
+	}
+	fmt.Println("Error result: ", res)
+
 	pattern := regexp.MustCompile(`^(\w|_)+\.(tdp|pcap)$`)
 	testString := "1438528975_2015_08_02____18_22_55_1738.tdp"
 
