@@ -39,17 +39,25 @@ type MessageTypeFilteringCompleteInfo struct {
 	CountCycleComplete int `json:"countCycleComplete"`
 }
 
-//MessageTypeFilteringStartInfo детальная информация отправляемая при запуске фильтрации
-type MessageTypeFilteringStartInfo struct {
+//MessageTypeFilteringStartInfoFirstPart детальная информаци, первый фрагмент (без имен файлов)
+type MessageTypeFilteringStartInfoFirstPart struct {
 	FilterinInfoPattern
 	FilterCountPattern
-	DirectoryFiltering      string              `json:"directoryFiltering"`
-	CountDirectoryFiltering int                 `json:"countDirectoryFiltering"`
-	CountFullCycle          int                 `json:"countFullCycle"`
-	CountFilesFiltering     int                 `json:"countFilesFiltering"`
-	CountMaxFilesSize       int64               `json:"countMaxFilesSize"`
-	UseIndexes              bool                `json:"useIndexes"`
-	ListFilesFilter         map[string][]string `json:"listFilesFilter"`
+	DirectoryFiltering      string         `json:"directoryFiltering"`
+	CountDirectoryFiltering int            `json:"countDirectoryFiltering"`
+	CountFullCycle          int            `json:"countFullCycle"`
+	CountFilesFiltering     int            `json:"countFilesFiltering"`
+	CountMaxFilesSize       int64          `json:"countMaxFilesSize"`
+	UseIndexes              bool           `json:"useIndexes"`
+	NumberMessageParts      [2]int         `json:"numberMessageParts"`
+	ListCountFilesFilter    map[string]int `json:"listCountFilesFilterr"`
+}
+
+//MessageTypeFilteringStartInfoSecondPart детальная информация с именами файлов
+type MessageTypeFilteringStartInfoSecondPart struct {
+	FilterinInfoPattern
+	NumberMessageParts [2]int              `json:"numberMessageParts"`
+	ListFilesFilter    map[string][]string `json:"listFilesFilter"`
 }
 
 //MessageTypeFilteringExecuteOrUnexecuteInfo детальная информация при выполнении или не выполнении фильтрации
@@ -70,10 +78,16 @@ type MessageTypeFilteringExecuteOrUnexecuteInfo struct {
                     "countCycleComplete": countCycleComplete,
                     "countFoundFilesSize": countFoundFilesSize
 */
-//MessageTypeFilteringStart при начале фильтрации
-type MessageTypeFilteringStart struct {
-	MessageType string                        `json:"messageType"`
-	Info        MessageTypeFilteringStartInfo `json:"info"`
+//MessageTypeFilteringStartFirstPart при начале фильтрации (первая часть)
+type MessageTypeFilteringStartFirstPart struct {
+	MessageType string                                 `json:"messageType"`
+	Info        MessageTypeFilteringStartInfoFirstPart `json:"info"`
+}
+
+//MessageTypeFilteringStartSecondPart при начале фильтрации (первая часть)
+type MessageTypeFilteringStartSecondPart struct {
+	MessageType string                                  `json:"messageType"`
+	Info        MessageTypeFilteringStartInfoSecondPart `json:"info"`
 }
 
 //MessageTypeFilteringStop отправляется для подтверждения остановки фильтрации

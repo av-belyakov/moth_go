@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"os/exec"
@@ -349,16 +350,28 @@ func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, 
 func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
 	fmt.Println("FILTER START, function requestFilteringStart START...")
 
-	/*createDirectoryForFiltering := func() (err error) {
-		dateTimeStart := time.Unix(int64(mft.Info.Settings.DateTimeStart), 0)
-		dirName := strconv.Itoa(dateTimeStart.Year()) + "_" + dateTimeStart.Month().String() + "_" + strconv.Itoa(dateTimeStart.Day()) + "_" + strconv.Itoa(dateTimeStart.Hour()) + "_" + strconv.Itoa(dateTimeStart.Minute()) + "_" + mft.Info.TaskIndex
+	const sizeChunk = 30
 
-		filePath := path.Join(prf.PathStorageFilterFiles, "/", dirName)
+	getCountPartsMessage := func(list map[string]int, sizeChunk int) int {
+		var maxFiles float64
+		for _, v := range list {
+			if maxFiles < float64(v) {
+				maxFiles = float64(v)
+			}
+		}
 
-		prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering = filePath
+		newCountChunk := float64(sizeChunk)
 
-		return os.MkdirAll(filePath, 0766)
-	}*/
+		fmt.Println("count chunks: ", maxFiles/newCountChunk)
+
+		x := math.Floor(maxFiles / newCountChunk)
+		y := maxFiles / newCountChunk
+		if (y - x) != 0 {
+			x++
+		}
+
+		return int(x)
+	}
 
 	createFileReadme := func() error {
 		directoryName := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
@@ -492,44 +505,123 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 	//общий размер фильтруемых файлов
 	infoTaskFilter.CountMaxFilesSize = fullSizeFiles
 
-	messageFilteringStart := configure.MessageTypeFilteringStart{
-		"filtering",
-		configure.MessageTypeFilteringStartInfo{
-			configure.FilterinInfoPattern{
-				Processing: "start",
-				TaskIndex:  mft.Info.TaskIndex,
-				IPAddress:  prf.ExternalIP,
+	listCountFilesFilter := make(map[string]int)
+
+	for disk := range prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
+		listCountFilesFilter[disk] = len(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk])
+
+		fmt.Println("DISK NAME: ", disk, " --- ", len(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk]), " files")
+	}
+
+	countPartsMessage := getCountPartsMessage(listCountFilesFilter, sizeChunk)
+	numberMessageParts := [2]int{0, countPartsMessage}
+
+	firstMessageStart := func() {
+		messageFilteringStart := configure.MessageTypeFilteringStartFirstPart{
+			"filtering",
+			configure.MessageTypeFilteringStartInfoFirstPart{
+				configure.FilterinInfoPattern{
+					Processing: "start",
+					TaskIndex:  mft.Info.TaskIndex,
+					IPAddress:  prf.ExternalIP,
+				},
+				configure.FilterCountPattern{
+					CountCycleComplete:    infoTaskFilter.CountCycleComplete,
+					CountFilesFound:       infoTaskFilter.CountFilesFound,
+					CountFoundFilesSize:   infoTaskFilter.CountFoundFilesSize,
+					CountFilesProcessed:   infoTaskFilter.CountFilesProcessed,
+					CountFilesUnprocessed: infoTaskFilter.CountFilesUnprocessed,
+				},
+				infoTaskFilter.DirectoryFiltering,
+				infoTaskFilter.CountDirectoryFiltering,
+				infoTaskFilter.CountFullCycle,
+				infoTaskFilter.CountFilesFiltering,
+				infoTaskFilter.CountMaxFilesSize,
+				false,
+				numberMessageParts,
+				listCountFilesFilter,
 			},
-			configure.FilterCountPattern{
-				CountCycleComplete:    infoTaskFilter.CountCycleComplete,
-				CountFilesFound:       infoTaskFilter.CountFilesFound,
-				CountFoundFilesSize:   infoTaskFilter.CountFoundFilesSize,
-				CountFilesProcessed:   infoTaskFilter.CountFilesProcessed,
-				CountFilesUnprocessed: infoTaskFilter.CountFilesUnprocessed,
-			},
-			infoTaskFilter.DirectoryFiltering,
-			infoTaskFilter.CountDirectoryFiltering,
-			infoTaskFilter.CountFullCycle,
-			infoTaskFilter.CountFilesFiltering,
-			infoTaskFilter.CountMaxFilesSize,
-			false,
-			infoTaskFilter.ListFilesFilter,
-		},
+		}
+
+		fmt.Println("----- MESSAGE START FIRST -----")
+		fmt.Printf("%#v", messageFilteringStart)
+		fmt.Println("-------------------------------")
+
+		/*formatJSON, err := json.Marshal(&messageFilteringStart)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		fmt.Println("-------------------------------------")
+		fmt.Println("Count byte on the START", len(formatJSON))
+		fmt.Println("-------------------------------------")
+
+		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}*/
 	}
 
-	formatJSON, err := json.Marshal(&messageFilteringStart)
-	if err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	secondMessageStart := func(countParts int) {
+		getListFiles := func(numPart int) map[string][]string {
+			listFilesFilter := map[string][]string{}
+			for disk := range prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
+
+				num := 0 * numPart
+				//listTmp := make([]string, sizeChunk)
+				lengthList := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk]
+
+				for i := 1; i <= countParts; i++ {
+					if i == countParts {
+						listFilesFilter[disk] = lengthList[num:]
+					} else {
+						listFilesFilter[disk] = lengthList[num:(num * i)]
+					}
+				}
+			}
+
+			return listFilesFilter
+		}
+
+		for i := 0; i < countParts; i++ {
+			fmt.Println(i, " --- ", countParts)
+
+			numberMessageParts := [2]int{i + 1, countParts}
+
+			messageFilteringStart := configure.MessageTypeFilteringStartSecondPart{
+				"filtering",
+				configure.MessageTypeFilteringStartInfoSecondPart{
+					configure.FilterinInfoPattern{
+						Processing: "start",
+						TaskIndex:  mft.Info.TaskIndex,
+						IPAddress:  prf.ExternalIP,
+					},
+					numberMessageParts,
+					getListFiles(countParts),
+				},
+			}
+
+			fmt.Println("----- MESSAGE START SECOND -----")
+
+			fmt.Printf("%#v", messageFilteringStart)
+			fmt.Println("-------------------------------\n")
+
+			/*formatJSON, err := json.Marshal(&messageFilteringStart)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}*/
+		}
 	}
 
-	fmt.Println("-------------------------------------")
-	fmt.Println("Count byte on the START", len(formatJSON))
-	fmt.Println("-------------------------------------")
+	//отправка сообщения о начале фильтрации (первая часть без списка файлов)
+	firstMessageStart()
 
-	//отправка сообщения о начале фильтрации
-	if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-	}
+	//продолжение отправки сообщений о начале фильтрации (со списком адресов)
+	secondMessageStart(countPartsMessage)
+
 	/*if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}*/

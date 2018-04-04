@@ -153,6 +153,13 @@ func filesList(){
 
 func main() {
 
+	//	n := math.Floor(100 / 30)
+	//n := 100 / 20
+
+	fmt.Println(float64(100) / 30)
+
+	//fmt.Println(math.Trunc(n))
+
 	getPatternNetwork := func(network string) (string, error) {
 		networkTmp := strings.Split(network, "/")
 		if len(networkTmp) < 2 {
