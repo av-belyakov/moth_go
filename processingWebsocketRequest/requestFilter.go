@@ -276,10 +276,6 @@ func filterProcessing(done chan<- string, patternParametersFiltering *PatternPar
 		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
-
-		/*		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}*/
 	}
 	done <- patternParametersFiltering.DirectoryName
 
@@ -361,11 +357,9 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 		}
 
 		newCountChunk := float64(sizeChunk)
-
-		fmt.Println("count chunks: ", maxFiles/newCountChunk)
-
 		x := math.Floor(maxFiles / newCountChunk)
 		y := maxFiles / newCountChunk
+
 		if (y - x) != 0 {
 			x++
 		}
@@ -401,52 +395,49 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 		return nil
 	}
+	/*
+		filteringComplete := func(fmfc *FormingMessageFilterComplete, prf *configure.ParametrsFunctionRequestFilter) {
+			var dirComplete int
+			var dirNameComplete string
 
-	filteringComplete := func(fmfc *FormingMessageFilterComplete, prf *configure.ParametrsFunctionRequestFilter) {
-		var dirComplete int
-		var dirNameComplete string
+			task := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[fmfc.TaskIndex]
 
-		task := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[fmfc.TaskIndex]
-
-		for dirComplete < fmfc.CountDirectory {
-			dirNameComplete = <-fmfc.Done
-			if len(dirNameComplete) > 0 {
-				dirComplete++
+			for dirComplete < fmfc.CountDirectory {
+				dirNameComplete = <-fmfc.Done
+				if len(dirNameComplete) > 0 {
+					dirComplete++
+				}
 			}
-		}
 
-		fmt.Println("--- FILTERING COMPLITE --- directory filtering is ", fmfc.CountDirectory)
+			fmt.Println("--- FILTERING COMPLITE --- directory filtering is ", fmfc.CountDirectory)
 
-		close(fmfc.Done)
+			close(fmfc.Done)
 
-		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
-			"filtering",
-			configure.MessageTypeFilteringCompleteInfo{
-				FilterinInfoPattern: configure.FilterinInfoPattern{
-					Processing: "complete",
-					TaskIndex:  fmfc.TaskIndex,
-					IPAddress:  fmfc.RemoteIP,
+			messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
+				"filtering",
+				configure.MessageTypeFilteringCompleteInfo{
+					FilterinInfoPattern: configure.FilterinInfoPattern{
+						Processing: "complete",
+						TaskIndex:  fmfc.TaskIndex,
+						IPAddress:  fmfc.RemoteIP,
+					},
+					CountCycleComplete: task.CountCycleComplete,
 				},
-				CountCycleComplete: task.CountCycleComplete,
-			},
+			}
+
+			formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			//удаляем задачу
+			delete(prf.AccessClientsConfigure.Addresses[fmfc.RemoteIP].TaskFilter, fmfc.TaskIndex)
 		}
-
-		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
-
-		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
-		/*if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}*/
-
-		//удаляем задачу
-		delete(prf.AccessClientsConfigure.Addresses[fmfc.RemoteIP].TaskFilter, fmfc.TaskIndex)
-	}
-
+	*/
 	//список файлов для фильтрации
 	fullCountFiles, fullSizeFiles := getListFilesForFiltering(prf, mft)
 
@@ -543,50 +534,62 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 			},
 		}
 
-		fmt.Println("----- MESSAGE START FIRST -----")
-		fmt.Printf("%#v", messageFilteringStart)
-		fmt.Println("-------------------------------")
+		/*
+			fmt.Println("----- MESSAGE START FIRST -----")
+			fmt.Printf("%#v", messageFilteringStart)
+			fmt.Println("-------------------------------")
+		*/
 
-		/*formatJSON, err := json.Marshal(&messageFilteringStart)
+		formatJSON, err := json.Marshal(&messageFilteringStart)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
+		fmt.Println("----- MESSAGE START FIRST -----")
 		fmt.Println("-------------------------------------")
 		fmt.Println("Count byte on the START", len(formatJSON))
 		fmt.Println("-------------------------------------")
 
 		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}*/
+		}
 	}
 
 	secondMessageStart := func(countParts int) {
+
 		getListFiles := func(numPart int) map[string][]string {
 			listFilesFilter := map[string][]string{}
+
 			for disk := range prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
 
-				num := 0 * numPart
-				//listTmp := make([]string, sizeChunk)
 				lengthList := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk]
 
-				for i := 1; i <= countParts; i++ {
-					if i == countParts {
-						listFilesFilter[disk] = lengthList[num:]
+				if numPart == 1 {
+					if len(lengthList) < sizeChunk {
+						listFilesFilter[disk] = lengthList[:]
 					} else {
-						listFilesFilter[disk] = lengthList[num:(num * i)]
+						listFilesFilter[disk] = lengthList[:sizeChunk]
 					}
+				} else {
+					num := sizeChunk * (numPart - 1)
+					numEnd := num + sizeChunk
+
+					if (numPart == countParts) && (num < len(lengthList)) {
+						listFilesFilter[disk] = lengthList[num:]
+					}
+					if (numPart < countParts) && (numEnd < len(lengthList)) {
+						listFilesFilter[disk] = lengthList[num:numEnd]
+					}
+
 				}
 			}
-
 			return listFilesFilter
 		}
 
-		for i := 0; i < countParts; i++ {
-			fmt.Println(i, " --- ", countParts)
+		for i := 1; i <= countParts; i++ {
+			listFiles := getListFiles(i)
 
-			numberMessageParts := [2]int{i + 1, countParts}
-
+			numberMessageParts[0] = i
 			messageFilteringStart := configure.MessageTypeFilteringStartSecondPart{
 				"filtering",
 				configure.MessageTypeFilteringStartInfoSecondPart{
@@ -596,23 +599,23 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 						IPAddress:  prf.ExternalIP,
 					},
 					numberMessageParts,
-					getListFiles(countParts),
+					listFiles,
 				},
 			}
 
 			fmt.Println("----- MESSAGE START SECOND -----")
+			for key, v := range listFiles {
+				fmt.Println(key, " = ", len(v))
+			}
 
-			fmt.Printf("%#v", messageFilteringStart)
-			fmt.Println("-------------------------------\n")
-
-			/*formatJSON, err := json.Marshal(&messageFilteringStart)
+			formatJSON, err := json.Marshal(&messageFilteringStart)
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}*/
+			}
 		}
 	}
 
@@ -622,37 +625,35 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 	//продолжение отправки сообщений о начале фильтрации (со списком адресов)
 	secondMessageStart(countPartsMessage)
 
-	/*if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-	}*/
+	/*
+		done := make(chan string, infoTaskFilter.CountDirectoryFiltering)
 
-	done := make(chan string, infoTaskFilter.CountDirectoryFiltering)
+		listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
+		pathDirectoryFiltering := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
 
-	listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
-	pathDirectoryFiltering := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
+		for dir := range listFilesFilter {
+			patternParametersFiltering := PatternParametersFiltering{
+				mft,
+				dir,
+				prf.TypeAreaNetwork,
+				pathDirectoryFiltering,
+				prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[dir],
+			}
 
-	for dir := range listFilesFilter {
-		patternParametersFiltering := PatternParametersFiltering{
-			mft,
-			dir,
-			prf.TypeAreaNetwork,
-			pathDirectoryFiltering,
-			prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[dir],
+			//запуск процесса фильтрации
+			go filterProcessing(done, &patternParametersFiltering, patternBashScript(&patternParametersFiltering), prf)
 		}
 
-		//запуск процесса фильтрации
-		go filterProcessing(done, &patternParametersFiltering, patternBashScript(&patternParametersFiltering), prf)
-	}
+		formingMessageFilterComplete := FormingMessageFilterComplete{
+			TaskIndex:      mft.Info.TaskIndex,
+			RemoteIP:       prf.RemoteIP,
+			CountDirectory: len(listFilesFilter),
+			Done:           done,
+		}
 
-	formingMessageFilterComplete := FormingMessageFilterComplete{
-		TaskIndex:      mft.Info.TaskIndex,
-		RemoteIP:       prf.RemoteIP,
-		CountDirectory: len(listFilesFilter),
-		Done:           done,
-	}
-
-	//отправляем сообщение о завершении фильтрации
-	go filteringComplete(&formingMessageFilterComplete, prf)
+		//отправляем сообщение о завершении фильтрации
+		go filteringComplete(&formingMessageFilterComplete, prf)
+	*/
 }
 
 /*
@@ -696,9 +697,6 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *co
 	if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	/*if err := prf.AccessClientsConfigure.Addresses[prf.ExternalIP].WsConnection.WriteMessage(1, formatJSON); err != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-	}*/
 
 	delete(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter, mft.Info.TaskIndex)
 }

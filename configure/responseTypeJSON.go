@@ -50,7 +50,7 @@ type MessageTypeFilteringStartInfoFirstPart struct {
 	CountMaxFilesSize       int64          `json:"countMaxFilesSize"`
 	UseIndexes              bool           `json:"useIndexes"`
 	NumberMessageParts      [2]int         `json:"numberMessageParts"`
-	ListCountFilesFilter    map[string]int `json:"listCountFilesFilterr"`
+	ListCountFilesFilter    map[string]int `json:"listCountFilesFilter"`
 }
 
 //MessageTypeFilteringStartInfoSecondPart детальная информация с именами файлов
