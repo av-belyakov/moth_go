@@ -75,7 +75,7 @@ func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTa
 
 		for _, file := range files {
 			fileIsUnixDate := file.ModTime().Unix()
-			if currentTask.DateTimeStart < uint64(fileIsUnixDate) && uint64(fileIsUnixDate) < currentTask.DateTimeEnd {
+			if (currentTask.DateTimeStart < uint64(fileIsUnixDate)) && (uint64(fileIsUnixDate) < currentTask.DateTimeEnd) {
 				currentListFilesFiltering.Files = append(currentListFilesFiltering.Files, file.Name())
 				currentListFilesFiltering.SizeFiles += file.Size()
 				currentListFilesFiltering.CountFiles++
@@ -112,8 +112,12 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 		}
 	}
 
+	fmt.Println(currentTask.ListFilesFilter)
+
 	for count > 0 {
 		resultFoundFile := <-result
+
+		fmt.Println(resultFoundFile)
 
 		if resultFoundFile.ErrMsg != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
@@ -333,7 +337,10 @@ func countNumberFilesFound(directoryResultFilter string) (count int, size int64,
 }
 
 func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) error {
-	dateTimeStart := time.Unix(1461929460, 0)
+
+	//dateTimeStart := time.Unix(1461929460, 0)
+	dateTimeStart := time.Unix(int64(mft.Info.Settings.DateTimeStart), 0)
+
 	dirName := strconv.Itoa(dateTimeStart.Year()) + "_" + dateTimeStart.Month().String() + "_" + strconv.Itoa(dateTimeStart.Day()) + "_" + strconv.Itoa(dateTimeStart.Hour()) + "_" + strconv.Itoa(dateTimeStart.Minute()) + "_" + mft.Info.TaskIndex
 
 	filePath := path.Join(prf.PathStorageFilterFiles, "/", dirName)
@@ -344,6 +351,30 @@ func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, 
 }
 
 func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
+	//индексы не используются (в том числе и не возобновляется фильтрация)
+	if !mft.Info.Settings.UseIndexes {
+		fmt.Println("START filter not INDEX 1111")
+
+		executeFiltering(prf, mft)
+	}
+
+	if mft.Info.Settings.CountIndexesFiles[0] > 0 {
+		fmt.Println("ADD INDEX FILES IN ListFiles 2222")
+		listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
+
+		for dir, listName := range mft.Info.Settings.ListFilesFilter {
+			listFilesFilter[dir] = append(listFilesFilter[dir], listName...)
+		}
+
+		if mft.Info.Settings.CountIndexesFiles[0] == mft.Info.Settings.CountIndexesFiles[1] {
+			fmt.Println("START FILTER WITH Index 3333")
+
+			executeFiltering(prf, mft)
+		}
+	}
+}
+
+func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
 	fmt.Println("FILTER START, function requestFilteringStart START...")
 
 	const sizeChunk = 30
@@ -369,6 +400,18 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 	createFileReadme := func() error {
 		directoryName := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
+
+		files, err := ioutil.ReadDir(directoryName)
+		if err != nil {
+			return err
+		}
+
+		for _, file := range files {
+			if file.Name() == "readme.txt" {
+				return nil
+			}
+		}
+
 		fileOut, err := os.OpenFile(path.Join(directoryName, "/readme.txt"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			return err
@@ -449,7 +492,7 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
-			ErrMsg:     "filesNotFound",
+			ErrMsg:     "noFilesMatchingConfiguredInterval",
 			TaskIndex:  mft.Info.TaskIndex,
 			ExternalIP: prf.ExternalIP,
 			Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
@@ -701,11 +744,6 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *co
 	delete(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter, mft.Info.TaskIndex)
 }
 
-func requestFilteringResume(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
-	fmt.Println("FILTER RESUME, function requestFilteringResume START...")
-
-}
-
 //RequestTypeFilter обрабатывает запросы связанные с фильтрацией
 func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter) {
 
@@ -725,7 +763,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		return
 	}
 
-	//проверка полученных от пользователя данных (список адресов, сетей и файлов по которым должна быть выполненна фильтрация)
+	//проверка полученных от пользователя данных (дата и время, список адресов и сетей)
 	if errMsg, ok := helpers.InputParametrsForFiltering(prf, mtf); !ok {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
@@ -745,7 +783,5 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		requestFilteringStart(prf, mtf)
 	case "off":
 		requestFilteringStop(prf, mtf)
-	case "resume":
-		requestFilteringResume(prf, mtf)
 	}
 }

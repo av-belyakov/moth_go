@@ -31,19 +31,19 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(errorMessage))
 		break
 	}
-	fmt.Println("CreateFilesRange COMPLETE")
+	//fmt.Println("CreateFilesRange COMPLETE")
 
 	//загрузка оперативной памяти
 	if err := sysInfo.CreateRandomAccessMemory(); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	fmt.Println("RandomAccessMemory COMPLETE")
+	//fmt.Println("RandomAccessMemory COMPLETE")
 
 	//загрузка ЦПУ
 	if err := sysInfo.CreateLoadCPU(); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	fmt.Println("CreateLoadCPU COMPLETE")
+	//fmt.Println("CreateLoadCPU COMPLETE")
 
 	//нагрузка на сетевых интерфейсах
 	go sysInfo.CreateLoadNetworkInterface(done, errorMessage)
@@ -54,13 +54,13 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 		fmt.Println(errorMessage)
 		break
 	}
-	fmt.Println("CreateLoadNetworkInterface COMPLETE")
+	//fmt.Println("CreateLoadNetworkInterface COMPLETE")
 
 	//свободное дисковое пространство
 	if err := sysInfo.CreateDiskSpace(); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	fmt.Println("CreateDiskSpace COMPLETE")
+	//fmt.Println("CreateDiskSpace COMPLETE")
 
 	sysInfo.Info.IPAddress = mc.ExternalIPAddress
 	sysInfo.Info.CurrentDateTime = time.Now().Unix() * 1000

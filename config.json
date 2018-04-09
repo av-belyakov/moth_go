@@ -1,7 +1,7 @@
 {
     "pathMainConfigurationFile": "/opt/zsensor/conf/zsensor.conf",
     "pathMainConfigurationFile_comments": "путь до основного конфигурационного файла",
-    "authenticationToken": "7914b55656d09a61922310069835",
+    "authenticationToken": "3cd1526b292dc8160132d8889954d",
     "authenticationToken_comments": "идентификационный токен",
     "externalIpAddress": "127.0.0.1",
     "externalIpAddress_comments": "внешний ip адрес источника",

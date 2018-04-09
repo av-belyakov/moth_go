@@ -37,7 +37,7 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 	defer func() {
 		fmt.Println("closed channels")
 		close(chanTypePing)
-		close(chanInfoTranssmition)
+		//close(chanInfoTranssmition)
 	}()
 
 	var parametrsFunctionRequestFilter configure.ParametrsFunctionRequestFilter

@@ -117,63 +117,72 @@ func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisk
 //InputParametrsForFiltering выполняет ряд проверок валидности полученных от пользователя данных перед выполнением фильтрации
 func InputParametrsForFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter) (string, bool) {
 	var ok bool
-	if mtf.Info.Processing == "on" || mtf.Info.Processing == "resume" {
-		//проверяем дату и время
-		if ok = checkDateTime(mtf.Info.Settings.DateTimeStart, mtf.Info.Settings.DateTimeEnd); !ok {
-			fmt.Println("CHECK DATETIME ERROR")
 
-			_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received datetime")
-			return "userDataIncorrect", false
-		}
-
-		//проверяем IP адреса
-		listIPAddress, ok := checkNetworkOrIPAddress("IPAddress", mtf.Info.Settings.IPAddress)
-		if !ok {
-			fmt.Println("CHECK IPADDRESS ERROR")
-
-			_ = saveMessageApp.LogMessage("error", "task filtering: incorrect ipaddress")
-			return "userDataIncorrect", false
-		}
-
-		//проверяем диапазоны сетей
-		listNetwork, ok := checkNetworkOrIPAddress("Network", mtf.Info.Settings.Network)
-		if !ok {
-			fmt.Println("CHECK NETWORK ERROR")
-
-			_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received network")
-			return "userDataIncorrect", false
-		}
-
-		//проверяем наличие списков ip адресов или подсетей
-		if len(listIPAddress) == 0 && len(listNetwork) == 0 {
-			_ = saveMessageApp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
-			return "userDataIncorrect", false
-		}
-
-		//проверяем пути и имена файлов которые необходимо отфильтровать
-		listFilesFilter, ok := checkNameFilesForFiltering(mtf.Info.Settings.ListFilesFilter, prf.CurrentDisks)
-		if mtf.Info.Settings.UseIndexes && !ok {
-			fmt.Println("CHECK LIST_FILES_FILTERING ERROR")
-
-			_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received list files filtering")
-			return "userDataIncorrect", false
-		}
-
-		tID := mtf.Info.TaskIndex
-		acc := prf.AccessClientsConfigure.Addresses[prf.RemoteIP]
-
-		var taskFilter = make(map[string]*configure.InformationTaskFilter)
-		taskFilter[tID] = &configure.InformationTaskFilter{}
-		acc.TaskFilter = taskFilter
-
-		acc.TaskFilter[tID].DateTimeStart = mtf.Info.Settings.DateTimeStart
-		acc.TaskFilter[tID].DateTimeEnd = mtf.Info.Settings.DateTimeEnd
-		acc.TaskFilter[tID].IPAddress = listIPAddress
-		acc.TaskFilter[tID].Network = listNetwork
-		acc.TaskFilter[tID].UseIndexes = mtf.Info.Settings.UseIndexes
-		acc.TaskFilter[tID].ListFilesFilter = listFilesFilter
+	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountIndexesFiles[0] > 0) {
+		fmt.Println("++ +++ ++++ Message type is OFF or use INDEX and seconds chunk --- --- ---")
 
 		return "", true
 	}
+
+	//	if mtf.Info.Processing == "on" {
+
+	//проверяем дату и время
+	if ok = checkDateTime(mtf.Info.Settings.DateTimeStart, mtf.Info.Settings.DateTimeEnd); !ok {
+		fmt.Println("CHECK DATETIME ERROR")
+
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received datetime")
+		return "userDataIncorrect", false
+	}
+
+	//проверяем IP адреса
+	listIPAddress, ok := checkNetworkOrIPAddress("IPAddress", mtf.Info.Settings.IPAddress)
+	if !ok {
+		fmt.Println("CHECK IPADDRESS ERROR")
+
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect ipaddress")
+		return "userDataIncorrect", false
+	}
+
+	//проверяем диапазоны сетей
+	listNetwork, ok := checkNetworkOrIPAddress("Network", mtf.Info.Settings.Network)
+	if !ok {
+		fmt.Println("CHECK NETWORK ERROR")
+
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received network")
+		return "userDataIncorrect", false
+	}
+
+	//проверяем наличие списков ip адресов или подсетей
+	if len(listIPAddress) == 0 && len(listNetwork) == 0 {
+		_ = saveMessageApp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
+		return "userDataIncorrect", false
+	}
+
+	//проверяем пути и имена файлов которые необходимо отфильтровать
+	/*listFilesFilter, ok := checkNameFilesForFiltering(mtf.Info.Settings.ListFilesFilter, prf.CurrentDisks)
+	if mtf.Info.Settings.UseIndexes && !ok {
+		fmt.Println("CHECK LIST_FILES_FILTERING ERROR")
+
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received list files filtering")
+		return "userDataIncorrect", false
+	}*/
+
+	tID := mtf.Info.TaskIndex
+	acc := prf.AccessClientsConfigure.Addresses[prf.RemoteIP]
+
+	var taskFilter = make(map[string]*configure.InformationTaskFilter)
+	taskFilter[tID] = &configure.InformationTaskFilter{}
+	acc.TaskFilter = taskFilter
+
+	acc.TaskFilter[tID].DateTimeStart = mtf.Info.Settings.DateTimeStart
+	acc.TaskFilter[tID].DateTimeEnd = mtf.Info.Settings.DateTimeEnd
+	acc.TaskFilter[tID].IPAddress = listIPAddress
+	acc.TaskFilter[tID].Network = listNetwork
+	//		acc.TaskFilter[tID].UseIndexes = mtf.Info.Settings.UseIndexes
+	//acc.TaskFilter[tID].ListFilesFilter = listFilesFilter
+	acc.TaskFilter[tID].ListFilesFilter = map[string][]string{}
+
 	return "", true
+	//	}
+	//	return "", true
 }

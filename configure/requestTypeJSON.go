@@ -7,12 +7,13 @@ package configure
 
 //MessageTypeSetting содержит детальную информацию о фильтрации
 type MessageTypeSetting struct {
-	DateTimeStart   uint64   `json:"dateTimeStart"`
-	DateTimeEnd     uint64   `json:"dateTimeEnd"`
-	IPAddress       []string `json:"ipaddress"`
-	Network         []string `json:"network"`
-	UseIndexes      bool     `json:"useIndexes"`
-	ListFilesFilter map[string][]string
+	DateTimeStart     uint64              `json:"dateTimeStart"`
+	DateTimeEnd       uint64              `json:"dateTimeEnd"`
+	IPAddress         []string            `json:"ipaddress"`
+	Network           []string            `json:"network"`
+	UseIndexes        bool                `json:"useIndexes"`
+	CountIndexesFiles [2]int              `json:"countIndexesFiles"`
+	ListFilesFilter   map[string][]string `json:"listFilesFilter"`
 }
 
 //MessageTypeFilterInfo содержит общую инфрмацию о фильтрации
