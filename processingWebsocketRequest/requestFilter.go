@@ -115,8 +115,6 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 	for count > 0 {
 		resultFoundFile := <-result
 
-		fmt.Println(resultFoundFile)
-
 		if resultFoundFile.ErrMsg != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
 		}
@@ -244,22 +242,25 @@ func filterProcessing(done chan<- string, patternParametersFiltering *PatternPar
 	mtfeou.Info.IPAddress = prf.RemoteIP
 	mtfeou.Info.TaskIndex = patternParametersFiltering.ParameterFilter.Info.TaskIndex
 
+	fmt.Println(patternParametersFiltering.DirectoryName, " count files = ", len(listFilesFilter))
+
 	for _, file := range listFilesFilter {
 		mtfeou.Info.ProcessingFile.FileName = file
 
 		newPatternBashScript := strings.Replace(patternBashScript, "$files", file, -1)
 
 		task.CountCycleComplete++
+		task.CountFilesProcessed++
+		mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
 
+		mtfeou.Info.Processing = "execute"
 		if err := exec.Command("sh", "-c", newPatternBashScript).Run(); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err)+"\t"+patternParametersFiltering.DirectoryName+", file: "+file)
+
 			task.CountFilesUnprocessed++
 			mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
-			mtfeou.Info.Processing = "unexecuted"
 			mtfeou.Info.ProcessingFile.StatusProcessed = false
 		} else {
-			task.CountFilesProcessed++
-			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
-			mtfeou.Info.Processing = "executed"
 			mtfeou.Info.ProcessingFile.StatusProcessed = true
 		}
 
@@ -283,41 +284,6 @@ func filterProcessing(done chan<- string, patternParametersFiltering *PatternPar
 		}
 	}
 	done <- patternParametersFiltering.DirectoryName
-
-	/*
-			type MessageTypeFilteringExecutedOrUnexecuted struct {
-			 MessageType string                                     `json:"messageType"`
-			Info        MessageTypeFilteringExecuteOrUnexecuteInfo `json:"info"`
-		}
-
-		type MessageTypeFilteringExecuteOrUnexecuteInfo struct {
-			FilterinInfoPattern
-			FilterCountPattern
-			ProcessingFile InfoProcessingFile `json:"infoProcessingFile"`
-			//	UnprocessingFile string `json:"unprocessingFile"`
-		}
-
-		type InfoProcessingFile struct {
-			 FileName          string `json:"fileName"`
-			 DirectoryLocation string `json:"directoryLocation"`
-			 StatusProcessed   bool `json:"statusProcessed"`
-		}
-
-		type FilterinInfoPattern struct {
-			Processing string `json:"processing"`
-			 TaskIndex  string `json:"taskIndex"`
-			 IPAddress  string `json:"ipAddress"`
-		}
-
-		type FilterCountPattern struct {
-			CountCycleComplete    int   `json:"countCycleComplete"`
-			CountFilesFound       int   `json:"countFilesFound"`
-			CountFoundFilesSize   int64 `json:"countFoundFilesSize"`
-			CountFilesProcessed   int   `json:"countFilesProcessed"`
-			CountFilesUnprocessed int   `json:"countFilesUnprocessed"`
-		}
-
-	*/
 }
 
 //подстчет количества найденных файлов
@@ -358,13 +324,13 @@ func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, 
 func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
 	//индексы не используются (в том числе и не возобновляется фильтрация)
 	if !mft.Info.Settings.UseIndexes {
-		fmt.Println("START filter not INDEX 1111")
+		fmt.Println("\nSTART filter not INDEX 1111")
 
 		executeFiltering(prf, mft)
 	}
 
 	if mft.Info.Settings.CountIndexesFiles[0] > 0 {
-		fmt.Println("ADD INDEX FILES IN ListFiles 2222")
+		fmt.Println("\nADD INDEX FILES IN ListFiles 2222")
 		listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
 
 		for dir, listName := range mft.Info.Settings.ListFilesFilter {
@@ -372,7 +338,7 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 		}
 
 		if mft.Info.Settings.CountIndexesFiles[0] == mft.Info.Settings.CountIndexesFiles[1] {
-			fmt.Println("START FILTER WITH Index 3333")
+			fmt.Println("\nSTART FILTER WITH Index 3333")
 
 			executeFiltering(prf, mft)
 		}
@@ -455,12 +421,16 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 		for dirComplete < fmfc.CountDirectory {
 			dirNameComplete = <-fmfc.Done
 
+			fmt.Println("DIRECTORY NAME = ", dirNameComplete)
+
 			if len(dirNameComplete) > 0 {
 				dirComplete++
 			}
 		}
 
+		fmt.Println("==========================================")
 		fmt.Println("--- FILTERING COMPLITE --- directory filtering is ", fmfc.CountDirectory)
+		fmt.Println("==========================================")
 
 		close(fmfc.Done)
 

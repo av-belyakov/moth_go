@@ -77,8 +77,8 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 			go func() {
 				for {
 					select {
-					case t := <-ticker.C:
-						fmt.Println("\nCurrent time: ", t)
+					case <-ticker.C:
+						//fmt.Println("\nCurrent time: ", t)
 
 						go sysInfo.GetSystemInformation(chanInfoTranssmition, mc)
 					}
@@ -89,7 +89,7 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 				for {
 					messageResponse := <-chanInfoTranssmition
 
-					fmt.Println("\nSENDING SOURCE INFO TO -----> Flashlight")
+					//fmt.Println("\nSENDING SOURCE INFO TO -----> Flashlight")
 
 					err = c.WriteMessage(1, messageResponse)
 					if err != nil {
