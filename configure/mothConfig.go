@@ -16,4 +16,5 @@ type MothConfig struct {
 	TypeAreaNetwork           int      `json:"typeAreaNetwork"`
 	CurrentDisks              []string `json:"currentDisks"`
 	PathStorageFilterFiles    string   `json:"pathStorageFilterFiles"`
+	RefreshIntervalSysInfo    int      `json:"refreshIntervalSysInfo"`
 }

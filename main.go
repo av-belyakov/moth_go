@@ -19,6 +19,7 @@ import (
 	"moth_go/configure"
 	"moth_go/routes"
 	"moth_go/saveMessageApp"
+	"moth_go/sysInfo"
 )
 
 //ListAccessIPAddress хранит разрешенные для соединения ip адреса
@@ -202,6 +203,19 @@ func init() {
 		_ = saveMessageApp.LogMessage("info", msg)
 		log.Println(msg)
 	}
+
+	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
+
+	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				go sysInfo.GetSystemInformation(accessClientsConfigure.ChanInfoTranssmition, &mc)
+			}
+		}
+	}()
 }
 
 func main() {

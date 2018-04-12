@@ -159,12 +159,12 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 		num := 0
 		if len(ipaddreses) != 0 {
 			if len(ipaddreses) == 1 {
-				searchHosts += " host " + ipaddreses[0]
+				searchHosts += " (host " + ipaddreses[0] + " || (vlan && host " + ipaddreses[0] + "))"
 			} else {
 				for _, ip := range ipaddreses {
-					searchHosts += " host " + ip
+					searchHosts += " (host " + ip + " || (vlan && host " + ip + "))"
 					if num < (len(ipaddreses) - 1) {
-						searchHosts += " or"
+						searchHosts += " ||"
 					}
 					num++
 				}
@@ -182,7 +182,7 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
-				searchNetworks += " net " + networkPattern
+				searchNetworks += " (net " + networkPattern + " || (vlan && net " + networkPattern + "))"
 			} else {
 				for _, net := range networks {
 					networkPattern, err := getPatternNetwork(net)
@@ -190,9 +190,9 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					searchNetworks += " net " + networkPattern
+					searchNetworks += " (net " + networkPattern + " || (vlan && net " + networkPattern + "))"
 					if num < (len(networks) - 1) {
-						searchNetworks += " or"
+						searchNetworks += " ||"
 					}
 					num++
 				}
@@ -211,17 +211,16 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 	searchNetwork := getNetworksString(patternParametersFiltering.ParameterFilter.Info.Settings.Network)
 
 	if len(patternParametersFiltering.ParameterFilter.Info.Settings.IPAddress) > 0 && len(patternParametersFiltering.ParameterFilter.Info.Settings.Network) > 0 {
-		bind = " or"
+		bind = " || "
 	}
 
 	listTypeArea := map[int]string{
 		1: "",
-		2: " '(vlan or ip)' and ",
-		3: " '(pppoes && ip)' and ",
+		2: " '(pppoes && ip)' and ",
 	}
 
 	pattern := " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files"
-	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + searchHosts + bind + searchNetwork
+	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + " '" + searchHosts + bind + searchNetwork + "'"
 	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/$files;"
 
 	return pattern

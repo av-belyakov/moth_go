@@ -42,7 +42,8 @@ type ClientsConfigure struct {
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
-	Addresses map[string]*ClientsConfigure
+	Addresses            map[string]*ClientsConfigure
+	ChanInfoTranssmition chan []byte
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket

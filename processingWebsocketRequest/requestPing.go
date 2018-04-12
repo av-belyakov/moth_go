@@ -10,8 +10,7 @@ import (
 
 //MessageTypePingInfo описание вложенной информации для ping info
 type MessageTypePingInfo struct {
-	MaxCountProcessFiltering        int `json:"maxCountProcessFiltering"`
-	IntervalTransmissionInformation int `json:"intervalTransmissionInformation"`
+	MaxCountProcessFiltering int `json:"maxCountProcessFiltering"`
 }
 
 //MessageTypePing содержит настройки для клиента
@@ -41,14 +40,12 @@ func (messageTypePing *MessageTypePing) RequestTypePing(remoteIP, externalIPAddr
 
 	//записываем полученные от flashlight данные в AccessClientConfigure
 	accessClientsConfigure.Addresses[remoteIP].CountTransmissionInformation = 0
-	accessClientsConfigure.Addresses[remoteIP].IntervalTransmissionInformation = messageTypePing.Info.IntervalTransmissionInformation
 	accessClientsConfigure.Addresses[remoteIP].MaxCountProcessFiltering = messageTypePing.Info.MaxCountProcessFiltering
 
 	//формируем ответ
 	messageTypePong.MessageType = "pong"
 	messageTypePong.Info.IPAddress = externalIPAddress
 	messageTypePong.Info.CountTransmissionInformation = 0
-	messageTypePong.Info.IntervalTransmissionInformation = messageTypePing.Info.IntervalTransmissionInformation
 	messageTypePong.Info.MaxCountProcessFiltering = messageTypePing.Info.MaxCountProcessFiltering
 
 	formatJSON, err := json.Marshal(messageTypePong)

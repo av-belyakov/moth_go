@@ -12,13 +12,16 @@
     "pathKeyFile": "keys/moth_private_key.pem",
     "pathKeyFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с приватным ключем",
     "typeAreaNetwork": 1,
-    "typeAreaNetwork_comments": "тип локальной сети 1 - просто ip сеть, 2 - VLAN, 3 - PPPoE",
+    "typeAreaNetwork_comments": "тип локальной сети 1 - IP, 2 - PPPoE",
     "currentDisks": [
         "/__CURRENT_DISK_1",
         "/__CURRENT_DISK_2",
         "/__CURRENT_DISK_3",
         "/__CURRENT_DISK_4"
     ],
-    "currentDisks_comments": "месторасположение фильтруемых файлов, ОБСОЛЮТНЫЙ путь ",
-    "pathStorageFilterFiles": "/home/TRAFFIC_FILTERS"
+    "currentDisks_comments": "месторасположение фильтруемых файлов, АБСОЛЮТНЫЙ путь ",
+    "pathStorageFilterFiles": "/home/TRAFFIC_FILTERS",
+    "pathStorageFilterFiles_comments": "местоположение файлов полученных в результате фильтрации",
+    "refreshIntervalSysInfo": 10,
+    "refreshIntervalSysInfo_comments": "интервал обнавления системной информации"
 }

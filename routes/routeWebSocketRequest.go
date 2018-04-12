@@ -3,12 +3,10 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"moth_go/configure"
 	"moth_go/processingWebsocketRequest"
 	"moth_go/saveMessageApp"
-	"moth_go/sysInfo"
 )
 
 //MessageType содержит тип JSON сообщения
@@ -32,13 +30,8 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 	c := accessClientsConfigure.Addresses[remoteIP].WsConnection
 
 	chanTypePing := make(chan []byte)
-	chanInfoTranssmition := make(chan []byte)
 
-	defer func() {
-		fmt.Println("closed channels")
-		close(chanTypePing)
-		//close(chanInfoTranssmition)
-	}()
+	defer close(chanTypePing)
 
 	var parametrsFunctionRequestFilter configure.ParametrsFunctionRequestFilter
 
@@ -67,27 +60,9 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			timer := accessClientsConfigure.Addresses[remoteIP].IntervalTransmissionInformation
-			ticker := time.NewTicker(time.Duration(timer) * time.Second)
-			defer func() {
-				fmt.Println("closed ticker channel")
-				ticker.Stop()
-			}()
-
 			go func() {
 				for {
-					select {
-					case <-ticker.C:
-						//fmt.Println("\nCurrent time: ", t)
-
-						go sysInfo.GetSystemInformation(chanInfoTranssmition, mc)
-					}
-				}
-			}()
-
-			go func() {
-				for {
-					messageResponse := <-chanInfoTranssmition
+					messageResponse := <-accessClientsConfigure.ChanInfoTranssmition
 
 					//fmt.Println("\nSENDING SOURCE INFO TO -----> Flashlight")
 
@@ -96,7 +71,7 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 						fmt.Println(err)
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-						//чистим конфигурацию и закрываем канал ticker
+						//чистим конфигурацию
 						actionConnectionBroken(accessClientsConfigure, remoteIP)
 						return
 					}
