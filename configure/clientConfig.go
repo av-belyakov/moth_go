@@ -3,7 +3,7 @@ package configure
 /*
 * Описание структур и методов настроек получаемых от клиентов,
 * в том числе и задач на фильтрацию сет. трафика, его выгрузку и т.д.
-* Версия 0.1, дата релиза 19.02.2018
+* Версия 0.11, дата релиза 03.05.2018
 * */
 
 import (
@@ -32,12 +32,11 @@ type InformationTaskFilter struct {
 
 //ClientsConfigure хранит информацию о конфигурации клиента
 type ClientsConfigure struct {
-	CountTransmissionInformation    int
-	IntervalTransmissionInformation int
-	MaxCountProcessFiltering        int
-	WsConnection                    *websocket.Conn
-	mu                              sync.Mutex
-	TaskFilter                      map[string]*InformationTaskFilter
+	CountTransmissionInformation int
+	MaxCountProcessFiltering     int
+	WsConnection                 *websocket.Conn
+	mu                           sync.Mutex
+	TaskFilter                   map[string]*InformationTaskFilter
 }
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов

@@ -20,10 +20,9 @@ type MessageTypePing struct {
 
 //InformationPong хранит дополнительную информацию
 type InformationPong struct {
-	IPAddress                       string `json:"ipAddress"`
-	MaxCountProcessFiltering        int    `json:"maxCountProcessFiltering"`
-	CountTransmissionInformation    int    `json:"countTransmissionInformation"`
-	IntervalTransmissionInformation int    `json:"intervalTransmissionInformation"`
+	IPAddress                    string `json:"ipAddress"`
+	MaxCountProcessFiltering     int    `json:"maxCountProcessFiltering"`
+	CountTransmissionInformation int    `json:"countTransmissionInformation"`
 }
 
 //MessageTypePong подтверждает настройки клиента

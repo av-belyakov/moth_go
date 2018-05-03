@@ -23,8 +23,40 @@ func actionConnectionBroken(accessClientsConfigure *configure.AccessClientsConfi
 	delete(accessClientsConfigure.Addresses, remoteIP)
 }
 
+//sendFilterTaskInfo отправляет сообщение о выполняемой или выполненной задаче по фильтрации сет. трафика
+func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, accessClientsConfigure *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+	for taskIndex, task := range ift.TaskID {
+		if task.RemoteIP == remoteIP {
+			//формируем сообщение о ходе фильтрации
+			var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
+
+			mtfeou.MessageType = "filtering"
+			mtfeou.Info.IPAddress = remoteIP
+			mtfeou.Info.TaskIndex = taskIndex
+			mtfeou.Info.Processing = task.TypeProcessing
+			mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
+			mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
+			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
+			mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
+			mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
+			mtfeou.Info.CountCycleComplete = task.CountCycleComplete
+			mtfeou.Info.CountFilesFound = task.CountFilesFound
+			mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
+
+			formatJSON, err := json.Marshal(&mtfeou)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if err := accessClientsConfigure.Addresses[remoteIP].SendWsMessage(1, formatJSON); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+		}
+	}
+}
+
 //RouteWebSocketRequest маршрутизирует запросы
-func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.AccessClientsConfigure, mc *configure.MothConfig) {
+func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, mc *configure.MothConfig) {
 	fmt.Println("*** RouteWebSocketRequest.go ***")
 
 	c := accessClientsConfigure.Addresses[remoteIP].WsConnection
@@ -59,6 +91,9 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
+
+			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (если соединение было разорванно и вновь установленно)
+			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, accessClientsConfigure, ift)
 
 			go func() {
 				for {

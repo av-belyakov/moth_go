@@ -36,6 +36,7 @@ var mc configure.MothConfig
 var accessClientsConfigure configure.AccessClientsConfigure
 var listAccessIPAddress ListAccessIPAddress
 var client = make(map[string]*configure.ClientsConfigure)
+var informationFilteringTask configure.InformationFilteringTask
 
 //ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
 func readMainConfig(fileName string, mc *configure.MothConfig) error {
@@ -168,7 +169,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 	accessClientsConfigure.Addresses[remoteIP].WsConnection = c
 
-	routes.RouteWebSocketRequest(remoteIP, &accessClientsConfigure, &mc)
+	routes.RouteWebSocketRequest(remoteIP, &accessClientsConfigure, &informationFilteringTask, &mc)
 }
 
 func init() {
@@ -206,6 +207,7 @@ func init() {
 
 	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
 
+	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)
 
 	go func() {
