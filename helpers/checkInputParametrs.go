@@ -115,7 +115,7 @@ func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisk
 }
 
 //InputParametrsForFiltering выполняет ряд проверок валидности полученных от пользователя данных перед выполнением фильтрации
-func InputParametrsForFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter) (string, bool) {
+func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *configure.MessageTypeFilter) (string, bool) {
 	var ok bool
 
 	fmt.Printf("%v", mtf.Info.Settings)
@@ -170,19 +170,18 @@ func InputParametrsForFiltering(prf *configure.ParametrsFunctionRequestFilter, m
 	}*/
 
 	tID := mtf.Info.TaskIndex
-	acc := prf.AccessClientsConfigure.Addresses[prf.RemoteIP]
 
-	var taskFilter = make(map[string]*configure.InformationTaskFilter)
-	taskFilter[tID] = &configure.InformationTaskFilter{}
-	acc.TaskFilter = taskFilter
+	var taskFilter = make(map[string]*configure.TaskInformation)
+	taskFilter[tID] = &configure.TaskInformation{}
+	ift.TaskID = taskFilter
 
-	acc.TaskFilter[tID].DateTimeStart = mtf.Info.Settings.DateTimeStart
-	acc.TaskFilter[tID].DateTimeEnd = mtf.Info.Settings.DateTimeEnd
-	acc.TaskFilter[tID].IPAddress = listIPAddress
-	acc.TaskFilter[tID].Network = listNetwork
+	ift.TaskID[tID].FilterSettings.DateTimeStart = mtf.Info.Settings.DateTimeStart
+	ift.TaskID[tID].FilterSettings.DateTimeEnd = mtf.Info.Settings.DateTimeEnd
+	ift.TaskID[tID].FilterSettings.IPAddress = listIPAddress
+	ift.TaskID[tID].FilterSettings.Network = listNetwork
 	//		acc.TaskFilter[tID].UseIndexes = mtf.Info.Settings.UseIndexes
 	//acc.TaskFilter[tID].ListFilesFilter = listFilesFilter
-	acc.TaskFilter[tID].ListFilesFilter = map[string][]string{}
+	ift.TaskID[tID].ListFilesFilter = map[string][]string{}
 
 	return "", true
 	//	}

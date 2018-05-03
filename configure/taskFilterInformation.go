@@ -49,3 +49,39 @@ type ChanInfoFilterTask struct {
 	CountFilesFound     int
 	CountFoundFilesSize int64
 }
+
+//GetInfoTaskFilter поиск задач фильтрации по IP клиента
+func (ift *InformationFilteringTask) GetInfoTaskFilter(remoteIP string) (taskIndex string, taskInformation *TaskInformation) {
+	for taskIndex, task := range ift.TaskID {
+		if task.RemoteIP == remoteIP {
+			return taskIndex, task
+		}
+	}
+	return
+}
+
+//GetCountTasksFilterForClient возвращает количество выполняемых для указанного клиента задач по фильтрации
+func (ift *InformationFilteringTask) GetCountTasksFilterForClient(remoteIP string) int {
+	countProcessTasks := 0
+
+	for _, task := range ift.TaskID {
+		if task.RemoteIP == remoteIP {
+			countProcessTasks++
+		}
+	}
+
+	return countProcessTasks
+}
+
+//IsMaxConcurrentProcessFiltering проверяет количество одновременно выполняемых задач и возвращает true или false в зависимости от того, привышает ли максимальное количество задач для одного клиента
+func (ift *InformationFilteringTask) IsMaxConcurrentProcessFiltering(remoteIP string, concurrent int) bool {
+	countProcessTasks := 0
+
+	for _, task := range ift.TaskID {
+		if task.RemoteIP == remoteIP {
+			countProcessTasks++
+		}
+	}
+
+	return countProcessTasks > concurrent
+}

@@ -39,6 +39,12 @@ type ClientsConfigure struct {
 	TaskFilter                   map[string]*InformationTaskFilter
 }
 
+/*
+УБРАТЬ TaskFilter с информацией о выполняемых задачах,
+соответственно удалить методы GetTaskFilter, GetCountTasksFilter, IsMaxCountProcessFiltering и
+др. связанные с выполняемыми задачами по фильтрации
+*/
+
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
 	Addresses            map[string]*ClientsConfigure
@@ -69,7 +75,7 @@ func (a *AccessClientsConfigure) GetCountTasksFilter(remoteIP string) int {
 	return len(a.Addresses[remoteIP].TaskFilter)
 }
 
-//IsMaxCountProcessFiltering проверяет количество одновременно выполняемых задач и возвращает true или false в ззависимости от того привышает ли максимальное количество задач
+//IsMaxCountProcessFiltering проверяет количество одновременно выполняемых задач и возвращает true или false в зависимости от того, привышает ли максимальное количество задач для одного клиента
 func (a *AccessClientsConfigure) IsMaxCountProcessFiltering(remoteIP string) bool {
 	return (len(a.Addresses[remoteIP].TaskFilter) > a.Addresses[remoteIP].MaxCountProcessFiltering)
 }

@@ -321,6 +321,10 @@ func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, 
 }
 
 func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
+	/*
+	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
+	*/
+
 	//индексы не используются (в том числе и не возобновляется фильтрация)
 	if !mft.Info.Settings.UseIndexes {
 		fmt.Println("\nSTART filter not INDEX 1111")
@@ -346,6 +350,10 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 
 func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
 	fmt.Println("FILTER START, function requestFilteringStart START...")
+
+	/*
+	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
+	*/
 
 	const sizeChunk = 30
 
@@ -685,8 +693,11 @@ type InformationTaskFilter struct {
 */
 
 func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
-
 	fmt.Println("FILTER STOP, function requestFilteringStop START...")
+
+	/*
+	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
+	*/
 
 	//очищаем списки файлов по которым выполняется фильтрация
 	for dirName := range prf.AccessClientsConfigure.Addresses[prf.ExternalIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
@@ -712,12 +723,26 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *co
 }
 
 //RequestTypeFilter обрабатывает запросы связанные с фильтрацией
-func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter) {
+func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 
 	fmt.Println("\nFILTERING: function RequestTypeFilter STARTING...")
 
-	//проверяем количество одновременно выполняемых задач
-	if prf.AccessClientsConfigure.IsMaxCountProcessFiltering(prf.RemoteIP) {
+	//!!!!!!!!проверяем количество одновременно выполняемых задач OLD
+	/*if prf.AccessClientsConfigure.IsMaxCountProcessFiltering(prf.RemoteIP) {
+		if err := errorMessage.SendErrorMessage(errorMessage.Options{
+			RemoteIP:   prf.RemoteIP,
+			ErrMsg:     "limitTasks",
+			TaskIndex:  mtf.Info.TaskIndex,
+			ExternalIP: prf.ExternalIP,
+			Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
+		}); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+		return
+	}*/
+
+	//проверяем количество одновременно выполняемых задач NEW
+	if ift.IsMaxConcurrentProcessFiltering(prf.RemoteIP, prf.AccessClientsConfigure.Addresses[prf.RemoteIP].MaxCountProcessFiltering) {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
 			ErrMsg:     "limitTasks",
@@ -731,7 +756,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 	}
 
 	//проверка полученных от пользователя данных (дата и время, список адресов и сетей)
-	if errMsg, ok := helpers.InputParametrsForFiltering(prf, mtf); !ok {
+	if errMsg, ok := helpers.InputParametrsForFiltering(ift, mtf); !ok {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
 			ErrMsg:     errMsg,
@@ -743,6 +768,10 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		}
 		return
 	}
+
+	/*
+	   ПОЛНОСТЬЮ ПЕРЕЙТИ НА ТИП ift, ИЗ ТИПА prf УБРАТЬ ВСЕ ИНФОРМАЦИЮ О ВЫПОЛНЯЕМЫХ ЗАДАЧАХ
+	*/
 
 	typeRequest := mtf.Info.Processing
 	switch typeRequest {

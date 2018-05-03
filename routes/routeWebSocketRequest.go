@@ -126,7 +126,12 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 			parametrsFunctionRequestFilter.TypeAreaNetwork = mc.TypeAreaNetwork
 			parametrsFunctionRequestFilter.AccessClientsConfigure = accessClientsConfigure
 
-			go processingWebsocketRequest.RequestTypeFilter(&parametrsFunctionRequestFilter, &messageTypeFilter)
+			go processingWebsocketRequest.RequestTypeFilter(&parametrsFunctionRequestFilter, &messageTypeFilter, ift)
+
+			/*
+			   Написать go подпрограмму для приема результатов фильтрации
+			   из канала типа ChanInfoFilterTask
+			*/
 
 		case "download files":
 			fmt.Println("routing to DOWNLOAD FILES...")
