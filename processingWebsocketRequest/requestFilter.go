@@ -36,7 +36,7 @@ type PatternParametersFiltering struct {
 	DirectoryName          string
 	TypeAreaNetwork        int
 	PathStorageFilterFiles string
-	ListFiles              []string
+	ListFiles              *configure.ListFilesFilter
 }
 
 //FormingMessageFilterComplete содержит детали для отправки сообщения о завершении фильтрации
@@ -47,7 +47,7 @@ type FormingMessageFilterComplete struct {
 	Done           chan string
 }
 
-func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTask *configure.InformationTaskFilter) {
+func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTask *configure.TaskInformation) {
 	var currentListFilesFiltering CurrentListFilesFiltering
 	currentListFilesFiltering.Path = disk
 	currentListFilesFiltering.SizeFiles = 0
@@ -75,7 +75,7 @@ func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTa
 
 		for _, file := range files {
 			fileIsUnixDate := file.ModTime().Unix()
-			if (currentTask.DateTimeStart < uint64(fileIsUnixDate)) && (uint64(fileIsUnixDate) < currentTask.DateTimeEnd) {
+			if (currentTask.FilterSettings.DateTimeStart < uint64(fileIsUnixDate)) && (uint64(fileIsUnixDate) < currentTask.FilterSettings.DateTimeEnd) {
 				currentListFilesFiltering.Files = append(currentListFilesFiltering.Files, file.Name())
 				currentListFilesFiltering.SizeFiles += file.Size()
 				currentListFilesFiltering.CountFiles++
@@ -87,11 +87,11 @@ func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTa
 }
 
 //подготовка списка файлов по которым будет выполнятся фильтрация
-func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) (int, int64) {
+func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) (int, int64) {
 
 	fmt.Println("START function getListFilesForFiltering...")
 
-	currentTask := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex]
+	currentTask := ift.TaskID[mft.Info.TaskIndex]
 
 	var fullCountFiles int
 	var fullSizeFiles int64
@@ -132,7 +132,7 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 }
 
 //формируем шаблон для фильтрации
-func patternBashScript(patternParametersFiltering *PatternParametersFiltering) string {
+func patternBashScript(ppf *PatternParametersFiltering) string {
 	getPatternNetwork := func(network string) (string, error) {
 		networkTmp := strings.Split(network, "/")
 		if len(networkTmp) < 2 {
@@ -205,12 +205,12 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 
 	bind := " "
 	//формируем строку для поиска хостов
-	searchHosts := getIPAddressString(patternParametersFiltering.ParameterFilter.Info.Settings.IPAddress)
+	searchHosts := getIPAddressString(ppf.ParameterFilter.Info.Settings.IPAddress)
 
 	//формируем строку для поиска сетей
-	searchNetwork := getNetworksString(patternParametersFiltering.ParameterFilter.Info.Settings.Network)
+	searchNetwork := getNetworksString(ppf.ParameterFilter.Info.Settings.Network)
 
-	if len(patternParametersFiltering.ParameterFilter.Info.Settings.IPAddress) > 0 && len(patternParametersFiltering.ParameterFilter.Info.Settings.Network) > 0 {
+	if len(ppf.ParameterFilter.Info.Settings.IPAddress) > 0 && len(ppf.ParameterFilter.Info.Settings.Network) > 0 {
 		bind = " || "
 	}
 
@@ -219,70 +219,84 @@ func patternBashScript(patternParametersFiltering *PatternParametersFiltering) s
 		2: " '(pppoes && ip)' and ",
 	}
 
-	pattern := " tcpdump -r " + patternParametersFiltering.DirectoryName + "/$files"
-	pattern += listTypeArea[patternParametersFiltering.TypeAreaNetwork] + " '" + searchHosts + bind + searchNetwork + "'"
-	pattern += " -w " + patternParametersFiltering.PathStorageFilterFiles + "/$files;"
+	pattern := " tcpdump -r " + ppf.DirectoryName + "/$files"
+	pattern += listTypeArea[ppf.TypeAreaNetwork] + " '" + searchHosts + bind + searchNetwork + "'"
+	pattern += " -w " + ppf.PathStorageFilterFiles + "/$files;"
 
 	return pattern
 }
 
 //выполнение фильтрации
-func filterProcessing(done chan<- string, patternParametersFiltering *PatternParametersFiltering, patternBashScript string, prf *configure.ParametrsFunctionRequestFilter) {
+func filterProcessing(done chan<- string, ppf *PatternParametersFiltering, patternBashScript string, prf *configure.ParametrsFunctionRequestFilter, ift *configure.InformationFilteringTask) {
 
-	fmt.Println("START func filterProcessing..........................", patternParametersFiltering.DirectoryName)
+	fmt.Println("START func filterProcessing..........................", ppf.DirectoryName)
 
-	listFilesFilter := patternParametersFiltering.ListFiles
-	task := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[patternParametersFiltering.ParameterFilter.Info.TaskIndex]
+	listFilesFilter := *ppf.ListFiles
+	task := ift.TaskID[ppf.ParameterFilter.Info.TaskIndex]
 
 	//формируем сообщение о ходе фильтрации
 	var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
 	mtfeou.MessageType = "filtering"
-	mtfeou.Info.ProcessingFile.DirectoryLocation = patternParametersFiltering.DirectoryName
+	mtfeou.Info.ProcessingFile.DirectoryLocation = ppf.DirectoryName
 	mtfeou.Info.IPAddress = prf.RemoteIP
-	mtfeou.Info.TaskIndex = patternParametersFiltering.ParameterFilter.Info.TaskIndex
+	mtfeou.Info.TaskIndex = ppf.ParameterFilter.Info.TaskIndex
 
-	fmt.Println(patternParametersFiltering.DirectoryName, " count files = ", len(listFilesFilter))
+	fmt.Println(ppf.DirectoryName, " count files = ", len(listFilesFilter[ppf.DirectoryName]))
 
-	for _, file := range listFilesFilter {
-		mtfeou.Info.ProcessingFile.FileName = file
+	/*
+	   функция остановки фильтрации реализованна,
+	   на очереди возобновление фильтрации (не проверял работает ли)
+	   и сделать отправку информации о фильтрации через канал типа ChanInfoFilterTask
+	   с последующим приемом данной информации в подпрограмме и отправки ее по websocket
+	*/
 
-		newPatternBashScript := strings.Replace(patternBashScript, "$files", file, -1)
+	for _, file := range listFilesFilter[ppf.DirectoryName] {
+		select {
+		case tID := <-prf.ChanStopTaskFilter:
+			if tID == ppf.ParameterFilter.Info.TaskIndex {
+				return
+			}
+		default:
+			mtfeou.Info.ProcessingFile.FileName = file
 
-		task.CountCycleComplete++
-		task.CountFilesProcessed++
-		mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
+			newPatternBashScript := strings.Replace(patternBashScript, "$files", file, -1)
 
-		mtfeou.Info.Processing = "execute"
-		if err := exec.Command("sh", "-c", newPatternBashScript).Run(); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err)+"\t"+patternParametersFiltering.DirectoryName+", file: "+file)
+			task.CountCycleComplete++
+			task.CountFilesProcessed++
+			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
 
-			task.CountFilesUnprocessed++
-			mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
-			mtfeou.Info.ProcessingFile.StatusProcessed = false
-		} else {
-			mtfeou.Info.ProcessingFile.StatusProcessed = true
-		}
+			mtfeou.Info.Processing = "execute"
+			if err := exec.Command("sh", "-c", newPatternBashScript).Run(); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err)+"\t"+ppf.DirectoryName+", file: "+file)
 
-		//получаем количество найденных файлов и их размер
-		countFiles, fullSizeFiles, err := countNumberFilesFound(patternParametersFiltering.PathStorageFilterFiles)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
+				task.CountFilesUnprocessed++
+				mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
+				mtfeou.Info.ProcessingFile.StatusProcessed = false
+			} else {
+				mtfeou.Info.ProcessingFile.StatusProcessed = true
+			}
 
-		mtfeou.Info.CountCycleComplete = task.CountCycleComplete
-		mtfeou.Info.CountFilesFound = countFiles
-		mtfeou.Info.CountFoundFilesSize = fullSizeFiles
+			//получаем количество найденных файлов и их размер
+			countFiles, fullSizeFiles, err := countNumberFilesFound(ppf.PathStorageFilterFiles)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
 
-		formatJSON, err := json.Marshal(&mtfeou)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
+			mtfeou.Info.CountCycleComplete = task.CountCycleComplete
+			mtfeou.Info.CountFilesFound = countFiles
+			mtfeou.Info.CountFoundFilesSize = fullSizeFiles
 
-		if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			formatJSON, err := json.Marshal(&mtfeou)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
 		}
 	}
-	done <- patternParametersFiltering.DirectoryName
+	done <- ppf.DirectoryName
 }
 
 //подстчет количества найденных файлов
@@ -306,7 +320,7 @@ func countNumberFilesFound(directoryResultFilter string) (count int, size int64,
 	return count, size, nil
 }
 
-func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) error {
+func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) error {
 
 	//dateTimeStart := time.Unix(1461929460, 0)
 	dateTimeStart := time.Unix(int64(mft.Info.Settings.DateTimeStart), 0)
@@ -315,26 +329,24 @@ func createDirectoryForFiltering(prf *configure.ParametrsFunctionRequestFilter, 
 
 	filePath := path.Join(prf.PathStorageFilterFiles, "/", dirName)
 
-	prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering = filePath
+	ift.TaskID[mft.Info.TaskIndex].DirectoryFiltering = filePath
 
 	return os.MkdirAll(filePath, 0766)
 }
 
-func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
-	/*
-	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
-	*/
-
+func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 	//индексы не используются (в том числе и не возобновляется фильтрация)
 	if !mft.Info.Settings.UseIndexes {
 		fmt.Println("\nSTART filter not INDEX 1111")
 
-		executeFiltering(prf, mft)
+		executeFiltering(prf, mft, ift)
 	}
 
 	if mft.Info.Settings.CountIndexesFiles[0] > 0 {
+
 		fmt.Println("\nADD INDEX FILES IN ListFiles 2222")
-		listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
+
+		listFilesFilter := ift.TaskID[mft.Info.TaskIndex].ListFilesFilter
 
 		for dir, listName := range mft.Info.Settings.ListFilesFilter {
 			listFilesFilter[dir] = append(listFilesFilter[dir], listName...)
@@ -343,17 +355,13 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 		if mft.Info.Settings.CountIndexesFiles[0] == mft.Info.Settings.CountIndexesFiles[1] {
 			fmt.Println("\nSTART FILTER WITH Index 3333")
 
-			executeFiltering(prf, mft)
+			executeFiltering(prf, mft, ift)
 		}
 	}
 }
 
-func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
+func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 	fmt.Println("FILTER START, function requestFilteringStart START...")
-
-	/*
-	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
-	*/
 
 	const sizeChunk = 30
 
@@ -377,7 +385,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 	}
 
 	createFileReadme := func() error {
-		directoryName := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
+		directoryName := ift.TaskID[mft.Info.TaskIndex].DirectoryFiltering
 
 		files, err := ioutil.ReadDir(directoryName)
 		if err != nil {
@@ -417,11 +425,11 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 		return nil
 	}
 
-	filteringComplete := func(fmfc *FormingMessageFilterComplete, prf *configure.ParametrsFunctionRequestFilter) {
+	filteringComplete := func(fmfc *FormingMessageFilterComplete, prf *configure.ParametrsFunctionRequestFilter, ift *configure.InformationFilteringTask) {
 		var dirComplete int
 		var dirNameComplete string
 
-		task := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[fmfc.TaskIndex]
+		task := ift.TaskID[fmfc.TaskIndex]
 
 		fmt.Println("START func filteringComplete ++++++")
 
@@ -463,11 +471,11 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 		}
 
 		//удаляем задачу
-		delete(prf.AccessClientsConfigure.Addresses[fmfc.RemoteIP].TaskFilter, fmfc.TaskIndex)
+		delete(ift.TaskID, fmfc.TaskIndex)
 	}
 
 	//список файлов для фильтрации
-	fullCountFiles, fullSizeFiles := getListFilesForFiltering(prf, mft)
+	fullCountFiles, fullSizeFiles := getListFilesForFiltering(prf, mft, ift)
 
 	fmt.Println("full count files found to FILTER: ", fullCountFiles)
 	fmt.Println("full size files found to FILTER: ", fullSizeFiles)
@@ -488,7 +496,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 	}
 
 	//создание директории для результатов фильтрации
-	if err := createDirectoryForFiltering(prf, mft); err != nil {
+	if err := createDirectoryForFiltering(prf, mft, ift); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
@@ -508,9 +516,9 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	infoTaskFilter := *prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex]
+	infoTaskFilter := *ift.TaskID[mft.Info.TaskIndex]
 	//количество директорий для фильтрации
-	infoTaskFilter.CountDirectoryFiltering = prf.AccessClientsConfigure.GetCountDirectoryFiltering(prf.RemoteIP, mft.Info.TaskIndex)
+	infoTaskFilter.CountDirectoryFiltering = ift.GetCountDirectoryFiltering(mft.Info.TaskIndex)
 	//общее количество фильтруемых файлов
 	infoTaskFilter.CountFilesFiltering = fullCountFiles
 	//количество полных циклов
@@ -520,10 +528,10 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 
 	listCountFilesFilter := make(map[string]int)
 
-	for disk := range prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
-		listCountFilesFilter[disk] = len(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk])
+	for disk := range ift.TaskID[mft.Info.TaskIndex].ListFilesFilter {
+		listCountFilesFilter[disk] = len(ift.TaskID[mft.Info.TaskIndex].ListFilesFilter[disk])
 
-		fmt.Println("DISK NAME: ", disk, " --- ", len(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk]), " files")
+		fmt.Println("DISK NAME: ", disk, " --- ", len(ift.TaskID[mft.Info.TaskIndex].ListFilesFilter[disk]), " files")
 	}
 
 	countPartsMessage := getCountPartsMessage(listCountFilesFilter, sizeChunk)
@@ -576,9 +584,9 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 		getListFiles := func(numPart int) map[string][]string {
 			listFilesFilter := map[string][]string{}
 
-			for disk := range prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
+			for disk := range ift.TaskID[mft.Info.TaskIndex].ListFilesFilter {
 
-				lengthList := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[disk]
+				lengthList := ift.TaskID[mft.Info.TaskIndex].ListFilesFilter[disk]
 
 				if numPart == 1 {
 					if len(lengthList) < sizeChunk {
@@ -643,8 +651,8 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 
 	done := make(chan string, infoTaskFilter.CountDirectoryFiltering)
 
-	listFilesFilter := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter
-	pathDirectoryFiltering := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].DirectoryFiltering
+	listFilesFilter := ift.TaskID[mft.Info.TaskIndex].ListFilesFilter
+	pathDirectoryFiltering := ift.TaskID[mft.Info.TaskIndex].DirectoryFiltering
 
 	fmt.Println("!!!!!!!!!!! COUNT DIRECTORY =", len(listFilesFilter))
 	fmt.Println("count dir for filter (create CHAN DONE)", infoTaskFilter.CountDirectoryFiltering)
@@ -655,11 +663,11 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 			dir,
 			prf.TypeAreaNetwork,
 			pathDirectoryFiltering,
-			prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[dir],
+			&ift.TaskID[mft.Info.TaskIndex].ListFilesFilter,
 		}
 
 		//запуск процесса фильтрации
-		go filterProcessing(done, &patternParametersFiltering, patternBashScript(&patternParametersFiltering), prf)
+		go filterProcessing(done, &patternParametersFiltering, patternBashScript(&patternParametersFiltering), prf, ift)
 	}
 
 	formingMessageFilterComplete := FormingMessageFilterComplete{
@@ -670,44 +678,46 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 	}
 
 	//отправляем сообщение о завершении фильтрации
-	go filteringComplete(&formingMessageFilterComplete, prf)
+	go filteringComplete(&formingMessageFilterComplete, prf, ift)
 
 }
 
-/*
-type InformationTaskFilter struct {
-	DateTimeStart, DateTimeEnd uint64
-	IPAddress, Network         []string
-	UseIndexes                 bool
-	  DirectoryFiltering         string
-	  CountDirectoryFiltering    int
-	  CountFullCycle             int
-	CountCycleComplete         int 0
-      CountFilesFiltering        int
-	CountFilesFound            int 0
-	CountFilesProcessed        int 0
-      CountMaxFilesSize          uint64
-	CountFoundFilesSize        uint64 0
-	ListFilesFilter            map[string][]string
-}
-*/
-
-func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter) {
+func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 	fmt.Println("FILTER STOP, function requestFilteringStop START...")
 
-	/*
-	   ПЕРЕЙТИ НА ТИП ift (InformationFilteringTask) для учета выполняемых задач по фильтрации сет. трафика
-	*/
+	//проверка наличия задачи с указанным индексом
+	if !ift.HasTaskFiltering(mtf.Info.TaskIndex) {
+		fmt.Println("Task ID is not found, EXIT")
+		return
+	}
+
+	getFullCountFiles := func() int {
+		var fullCountFiles int
+
+		for _, files := range ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter {
+			fullCountFiles += len(files)
+		}
+
+		return fullCountFiles
+	}
+
+	fmt.Println("+++++ BEFORE CLEAR list files for filtering, count files = ", getFullCountFiles())
 
 	//очищаем списки файлов по которым выполняется фильтрация
-	for dirName := range prf.AccessClientsConfigure.Addresses[prf.ExternalIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter {
-		prf.AccessClientsConfigure.Addresses[prf.ExternalIP].TaskFilter[mft.Info.TaskIndex].ListFilesFilter[dirName] = []string{}
+	listFilesFilter := map[string][]string{}
+	ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter = listFilesFilter
+
+	//отправляем идентификатор задачи, выполнение которой необходимо остановить
+	for i := 0; i < len(prf.CurrentDisks); i++ {
+		prf.ChanStopTaskFilter <- mtf.Info.TaskIndex
 	}
+
+	fmt.Println("+++++ AFTER CLEAR list files for filtering, count files = ", getFullCountFiles())
 
 	var messageFilteringStop configure.MessageTypeFilteringStop
 	messageFilteringStop.MessageType = "filtering"
 	messageFilteringStop.Info.Processing = "stop"
-	messageFilteringStop.Info.TaskIndex = mft.Info.TaskIndex
+	messageFilteringStop.Info.TaskIndex = mtf.Info.TaskIndex
 	messageFilteringStop.Info.IPAddress = prf.ExternalIP
 
 	formatJSON, err := json.Marshal(&messageFilteringStop)
@@ -719,27 +729,13 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mft *co
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	delete(prf.AccessClientsConfigure.Addresses[prf.RemoteIP].TaskFilter, mft.Info.TaskIndex)
+	delete(ift.TaskID, mtf.Info.TaskIndex)
 }
 
 //RequestTypeFilter обрабатывает запросы связанные с фильтрацией
 func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 
 	fmt.Println("\nFILTERING: function RequestTypeFilter STARTING...")
-
-	//!!!!!!!!проверяем количество одновременно выполняемых задач OLD
-	/*if prf.AccessClientsConfigure.IsMaxCountProcessFiltering(prf.RemoteIP) {
-		if err := errorMessage.SendErrorMessage(errorMessage.Options{
-			RemoteIP:   prf.RemoteIP,
-			ErrMsg:     "limitTasks",
-			TaskIndex:  mtf.Info.TaskIndex,
-			ExternalIP: prf.ExternalIP,
-			Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
-		}); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
-		return
-	}*/
 
 	//проверяем количество одновременно выполняемых задач NEW
 	if ift.IsMaxConcurrentProcessFiltering(prf.RemoteIP, prf.AccessClientsConfigure.Addresses[prf.RemoteIP].MaxCountProcessFiltering) {
@@ -769,15 +765,11 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		return
 	}
 
-	/*
-	   ПОЛНОСТЬЮ ПЕРЕЙТИ НА ТИП ift, ИЗ ТИПА prf УБРАТЬ ВСЕ ИНФОРМАЦИЮ О ВЫПОЛНЯЕМЫХ ЗАДАЧАХ
-	*/
-
 	typeRequest := mtf.Info.Processing
 	switch typeRequest {
 	case "on":
-		requestFilteringStart(prf, mtf)
+		requestFilteringStart(prf, mtf, ift)
 	case "off":
-		requestFilteringStop(prf, mtf)
+		requestFilteringStop(prf, mtf, ift)
 	}
 }

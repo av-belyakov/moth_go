@@ -7,4 +7,5 @@ type ParametrsFunctionRequestFilter struct {
 	AccessClientsConfigure *AccessClientsConfigure
 	CurrentDisks           []string
 	TypeAreaNetwork        int
+	ChanStopTaskFilter     chan string
 }

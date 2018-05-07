@@ -173,6 +173,7 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 
 	var taskFilter = make(map[string]*configure.TaskInformation)
 	taskFilter[tID] = &configure.TaskInformation{}
+	taskFilter[tID].FilterSettings = &configure.InfoFilterSettings{}
 	ift.TaskID = taskFilter
 
 	ift.TaskID[tID].FilterSettings.DateTimeStart = mtf.Info.Settings.DateTimeStart

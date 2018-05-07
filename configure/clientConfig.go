@@ -36,7 +36,6 @@ type ClientsConfigure struct {
 	MaxCountProcessFiltering     int
 	WsConnection                 *websocket.Conn
 	mu                           sync.Mutex
-	TaskFilter                   map[string]*InformationTaskFilter
 }
 
 /*
@@ -65,6 +64,7 @@ func (a *AccessClientsConfigure) IPAddressIsExist(ipaddress string) bool {
 	return found
 }
 
+/*
 //GetTaskFilter поиск задач фильтрации по IP клиента и идентификатору задачи
 func (a *AccessClientsConfigure) GetTaskFilter(remoteIP, taskFilter string) *InformationTaskFilter {
 	return a.Addresses[remoteIP].TaskFilter[taskFilter]
@@ -99,3 +99,4 @@ func (a *AccessClientsConfigure) GetCountFullFilesFiltering(remoteIP, taskIndex 
 	}
 	return num
 }
+*/

@@ -13,6 +13,9 @@ type InfoFilterSettings struct {
 	UserInput                  string
 }
 
+//ListFilesFilter отображение содержащее имена директорий и списки файлов для фильтрации
+type ListFilesFilter map[string][]string
+
 //TaskInformation хранит подробную информацию о выполняемой задачи по фильтрации сет. трафика
 type TaskInformation struct {
 	RemoteIP                string
@@ -30,8 +33,8 @@ type TaskInformation struct {
 	CountFilesUnprocessed   int
 	CountMaxFilesSize       int64
 	CountFoundFilesSize     int64
-	ListFilesFilter         map[string][]string
-	TypeProcessing          string
+	ListFilesFilter
+	TypeProcessing string
 }
 
 //InformationFilteringTask хранит информацию о выполняющихся задачах по фильтрации сет. трафика
@@ -48,6 +51,12 @@ type ChanInfoFilterTask struct {
 	StatusProcessedFile bool
 	CountFilesFound     int
 	CountFoundFilesSize int64
+}
+
+//HasTaskFiltering проверка наличия задачи с указанным идентификатором
+func (ift *InformationFilteringTask) HasTaskFiltering(taskIndex string) bool {
+	_, found := ift.TaskID[taskIndex]
+	return found
 }
 
 //GetInfoTaskFilter поиск задач фильтрации по IP клиента
@@ -84,4 +93,28 @@ func (ift *InformationFilteringTask) IsMaxConcurrentProcessFiltering(remoteIP st
 	}
 
 	return countProcessTasks > concurrent
+}
+
+//GetCountDirectoryFiltering получить количество директорий в которых обрабатывается файлы
+func (ift *InformationFilteringTask) GetCountDirectoryFiltering(taskIndex string) int {
+	var num int
+
+	for _, value := range ift.TaskID[taskIndex].ListFilesFilter {
+		if len(value) > 0 {
+			num++
+		}
+	}
+
+	return num
+}
+
+//GetCountFullFilesFiltering общее количество файлов необходимых для выполнения фильтрации
+func (ift *InformationFilteringTask) GetCountFullFilesFiltering(taskIndex string) int {
+	var num int
+
+	for _, value := range ift.TaskID[taskIndex].ListFilesFilter {
+		num += len(value)
+	}
+
+	return num
 }

@@ -62,8 +62,11 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 	c := accessClientsConfigure.Addresses[remoteIP].WsConnection
 
 	chanTypePing := make(chan []byte)
-
-	defer close(chanTypePing)
+	chanTypeInfoFilterTask := make(chan configure.ChanInfoFilterTask, (accessClientsConfigure.Addresses[remoteIP].MaxCountProcessFiltering * len(mc.CurrentDisks)))
+	defer func() {
+		close(chanTypePing)
+		close(chanTypeInfoFilterTask)
+	}()
 
 	var parametrsFunctionRequestFilter configure.ParametrsFunctionRequestFilter
 
@@ -125,6 +128,7 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 			parametrsFunctionRequestFilter.PathStorageFilterFiles = mc.PathStorageFilterFiles
 			parametrsFunctionRequestFilter.TypeAreaNetwork = mc.TypeAreaNetwork
 			parametrsFunctionRequestFilter.AccessClientsConfigure = accessClientsConfigure
+			parametrsFunctionRequestFilter.ChanStopTaskFilter = make(chan string, len(mc.CurrentDisks))
 
 			go processingWebsocketRequest.RequestTypeFilter(&parametrsFunctionRequestFilter, &messageTypeFilter, ift)
 
