@@ -12,42 +12,26 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//InformationTaskFilter содержит всю информацию по выполняемым заданиям фильтрации
-type InformationTaskFilter struct {
-	DateTimeStart, DateTimeEnd uint64
-	IPAddress, Network         []string
-	UseIndexes                 bool
-	DirectoryFiltering         string
-	CountDirectoryFiltering    int
-	CountFullCycle             int
-	CountCycleComplete         int
-	CountFilesFiltering        int
-	CountFilesFound            int
-	CountFilesProcessed        int
-	CountFilesUnprocessed      int
-	CountMaxFilesSize          int64
-	CountFoundFilesSize        int64
-	ListFilesFilter            map[string][]string
-}
-
 //ClientsConfigure хранит информацию о конфигурации клиента
 type ClientsConfigure struct {
 	CountTransmissionInformation int
 	MaxCountProcessFiltering     int
-	WsConnection                 *websocket.Conn
 	mu                           sync.Mutex
+	WsConnection                 *websocket.Conn
 }
 
-/*
-УБРАТЬ TaskFilter с информацией о выполняемых задачах,
-соответственно удалить методы GetTaskFilter, GetCountTasksFilter, IsMaxCountProcessFiltering и
-др. связанные с выполняемыми задачами по фильтрации
-*/
+//ChanInfoFilterTask описание типа канала для передачи информации о фильтрации
+type ChanInfoFilterTask struct {
+	TaskIndex      string
+	RemoteIP       string
+	TypeProcessing string
+}
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
 	Addresses            map[string]*ClientsConfigure
-	ChanInfoTranssmition chan []byte
+	ChanInfoTranssmition chan []byte             //канал для передачи системной информации
+	ChanInfoFilterTask   chan ChanInfoFilterTask //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket
@@ -63,40 +47,3 @@ func (a *AccessClientsConfigure) IPAddressIsExist(ipaddress string) bool {
 	_, found := a.Addresses[ipaddress]
 	return found
 }
-
-/*
-//GetTaskFilter поиск задач фильтрации по IP клиента и идентификатору задачи
-func (a *AccessClientsConfigure) GetTaskFilter(remoteIP, taskFilter string) *InformationTaskFilter {
-	return a.Addresses[remoteIP].TaskFilter[taskFilter]
-}
-
-//GetCountTasksFilter возвращает количество выполняемых для указанного клиента задач по фильтрации
-func (a *AccessClientsConfigure) GetCountTasksFilter(remoteIP string) int {
-	return len(a.Addresses[remoteIP].TaskFilter)
-}
-
-//IsMaxCountProcessFiltering проверяет количество одновременно выполняемых задач и возвращает true или false в зависимости от того, привышает ли максимальное количество задач для одного клиента
-func (a *AccessClientsConfigure) IsMaxCountProcessFiltering(remoteIP string) bool {
-	return (len(a.Addresses[remoteIP].TaskFilter) > a.Addresses[remoteIP].MaxCountProcessFiltering)
-}
-
-//GetCountDirectoryFiltering получить количество директорий в которых обрабатывается файлы
-func (a *AccessClientsConfigure) GetCountDirectoryFiltering(remoteIP, taskIndex string) int {
-	var num int
-	for _, value := range a.Addresses[remoteIP].TaskFilter[taskIndex].ListFilesFilter {
-		if len(value) > 0 {
-			num++
-		}
-	}
-	return num
-}
-
-//GetCountFullFilesFiltering общее количество файлов необходимых для выполнения фильтрации
-func (a *AccessClientsConfigure) GetCountFullFilesFiltering(remoteIP, taskIndex string) int {
-	var num int
-	for _, value := range a.Addresses[remoteIP].TaskFilter[taskIndex].ListFilesFilter {
-		num += len(value)
-	}
-	return num
-}
-*/

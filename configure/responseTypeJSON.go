@@ -28,11 +28,6 @@ type InfoProcessingFile struct {
 	StatusProcessed   bool   `json:"statusProcessed"`
 }
 
-//MessageTypeFilteringStopInfo детальная информация при ОСТАНОВКИ выполнения фильтрации
-type MessageTypeFilteringStopInfo struct {
-	FilterinInfoPattern
-}
-
 //MessageTypeFilteringCompleteInfo детальная информация при ЗАВЕРШЕНИИ выполнения фильтрации
 type MessageTypeFilteringCompleteInfo struct {
 	FilterinInfoPattern
@@ -92,8 +87,8 @@ type MessageTypeFilteringStartSecondPart struct {
 
 //MessageTypeFilteringStop отправляется для подтверждения остановки фильтрации
 type MessageTypeFilteringStop struct {
-	MessageType string                       `json:"messageType"`
-	Info        MessageTypeFilteringStopInfo `json:"info"`
+	MessageType string                           `json:"messageType"`
+	Info        MessageTypeFilteringCompleteInfo `json:"info"`
 }
 
 //MessageTypeFilteringComplete отправляется при завершении фильтрации

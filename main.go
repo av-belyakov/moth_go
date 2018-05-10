@@ -205,7 +205,10 @@ func init() {
 		log.Println(msg)
 	}
 
+	//иницилизируем канал для передачи системной информации
 	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
+	//иницилизируем канал для передачи информации по фильтрации сет. трафика
+	accessClientsConfigure.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)

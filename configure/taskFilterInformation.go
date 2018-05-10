@@ -42,17 +42,6 @@ type InformationFilteringTask struct {
 	TaskID map[string]*TaskInformation
 }
 
-//ChanInfoFilterTask описание типа канала для передачи информации о фильтрации
-type ChanInfoFilterTask struct {
-	TaskIndex           string
-	RemoteIP            string
-	TypeProcessing      string
-	ProcessingFileName  string
-	StatusProcessedFile bool
-	CountFilesFound     int
-	CountFoundFilesSize int64
-}
-
 //HasTaskFiltering проверка наличия задачи с указанным идентификатором
 func (ift *InformationFilteringTask) HasTaskFiltering(taskIndex string) bool {
 	_, found := ift.TaskID[taskIndex]

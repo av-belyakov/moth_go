@@ -234,14 +234,22 @@ func filterProcessing(done chan<- string, ppf *PatternParametersFiltering, patte
 	listFilesFilter := *ppf.ListFiles
 	task := ift.TaskID[ppf.ParameterFilter.Info.TaskIndex]
 
-	//формируем сообщение о ходе фильтрации
+	//формируем канал для передачи информации о фильтрации
+	var chanInfoFilterTask configure.ChanInfoFilterTask
+	chanInfoFilterTask.TaskIndex = ppf.ParameterFilter.Info.TaskIndex
+	chanInfoFilterTask.RemoteIP = prf.RemoteIP
+	chanInfoFilterTask.TypeProcessing = "execute"
+
+	/*
+		формируем сообщение о ходе фильтрации OLD!!!!!!!!!
+	*/
 	var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
 	mtfeou.MessageType = "filtering"
 	mtfeou.Info.ProcessingFile.DirectoryLocation = ppf.DirectoryName
 	mtfeou.Info.IPAddress = prf.RemoteIP
 	mtfeou.Info.TaskIndex = ppf.ParameterFilter.Info.TaskIndex
 
-	fmt.Println(ppf.DirectoryName, " count files = ", len(listFilesFilter[ppf.DirectoryName]))
+	//fmt.Println(ppf.DirectoryName, " count files = ", len(listFilesFilter[ppf.DirectoryName]))
 
 	/*
 	   функция остановки фильтрации реализованна,
@@ -257,22 +265,43 @@ func filterProcessing(done chan<- string, ppf *PatternParametersFiltering, patte
 				return
 			}
 		default:
+			task.ProcessingFileName = file
+			task.DirectoryFiltering = ppf.DirectoryName
+
+			/*
+				OLD
+			*/
 			mtfeou.Info.ProcessingFile.FileName = file
 
 			newPatternBashScript := strings.Replace(patternBashScript, "$files", file, -1)
 
 			task.CountCycleComplete++
 			task.CountFilesProcessed++
-			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
 
+			/*
+				OLD
+			*/
+			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
 			mtfeou.Info.Processing = "execute"
+
 			if err := exec.Command("sh", "-c", newPatternBashScript).Run(); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err)+"\t"+ppf.DirectoryName+", file: "+file)
 
 				task.CountFilesUnprocessed++
+				task.StatusProcessedFile = false
+
+				/*
+					mtfeou OLD удалить позже (в mtfeou будет сохранятся информация полученная из
+					канала chanInfoFilterTask) позже будет JSON из mtfeou будет отправлятся через WebSocket
+				*/
 				mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
 				mtfeou.Info.ProcessingFile.StatusProcessed = false
 			} else {
+				task.StatusProcessedFile = true
+
+				/*
+					OLD
+				*/
 				mtfeou.Info.ProcessingFile.StatusProcessed = true
 			}
 
@@ -282,6 +311,14 @@ func filterProcessing(done chan<- string, ppf *PatternParametersFiltering, patte
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
+			task.CountFilesFound = countFiles
+			task.CountFoundFilesSize = fullSizeFiles
+
+			prf.AccessClientsConfigure.ChanInfoFilterTask <- chanInfoFilterTask
+
+			/*
+				OLD
+			*/
 			mtfeou.Info.CountCycleComplete = task.CountCycleComplete
 			mtfeou.Info.CountFilesFound = countFiles
 			mtfeou.Info.CountFoundFilesSize = fullSizeFiles
@@ -291,6 +328,17 @@ func filterProcessing(done chan<- string, ppf *PatternParametersFiltering, patte
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
+			/*
+
+				prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON)
+				в последствии убрать так как информация будет передоватся
+				через канал типа ChanInfoFilterTask
+
+
+			*/
+			/*
+				OLD
+			*/
 			if err := prf.AccessClientsConfigure.Addresses[prf.RemoteIP].SendWsMessage(1, formatJSON); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
@@ -449,6 +497,17 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 
 		close(fmfc.Done)
 
+		//формируем канал для передачи информации о фильтрации
+		var chanInfoFilterTask configure.ChanInfoFilterTask
+		chanInfoFilterTask.TaskIndex = fmfc.TaskIndex
+		chanInfoFilterTask.RemoteIP = fmfc.RemoteIP
+		chanInfoFilterTask.TypeProcessing = "complete"
+
+		prf.AccessClientsConfigure.ChanInfoFilterTask <- chanInfoFilterTask
+
+		/*
+			OLD
+		*/
 		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
 			"filtering",
 			configure.MessageTypeFilteringCompleteInfo{
@@ -472,6 +531,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *config
 
 		//удаляем задачу
 		delete(ift.TaskID, fmfc.TaskIndex)
+		/* OLD */
 	}
 
 	//список файлов для фильтрации
@@ -719,6 +779,7 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mtf *co
 	messageFilteringStop.Info.Processing = "stop"
 	messageFilteringStop.Info.TaskIndex = mtf.Info.TaskIndex
 	messageFilteringStop.Info.IPAddress = prf.ExternalIP
+	messageFilteringStop.Info.CountCycleComplete = (ift.TaskID[mtf.Info.TaskIndex].CountCycleComplete - len(ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter))
 
 	formatJSON, err := json.Marshal(&messageFilteringStop)
 	if err != nil {
