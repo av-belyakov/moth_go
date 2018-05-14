@@ -35,7 +35,7 @@ type SettingsHTTPServer struct {
 var mc configure.MothConfig
 var accessClientsConfigure configure.AccessClientsConfigure
 var listAccessIPAddress ListAccessIPAddress
-var client = make(map[string]*configure.ClientsConfigure)
+
 var informationFilteringTask configure.InformationFilteringTask
 
 //ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
@@ -136,8 +136,10 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 
 		if !accessClientsConfigure.IPAddressIsExist(strings.Split(req.RemoteAddr, ":")[0]) {
 			remoteAddr := strings.Split(req.RemoteAddr, ":")[0]
-			client[remoteAddr] = &configure.ClientsConfigure{}
-			accessClientsConfigure.Addresses = client
+
+			fmt.Println("GET reomte IP ", remoteAddr)
+
+			accessClientsConfigure.Addresses[remoteAddr] = &configure.ClientsConfigure{}
 		}
 	}
 }
@@ -205,6 +207,7 @@ func init() {
 		log.Println(msg)
 	}
 
+	accessClientsConfigure.Addresses = make(map[string]*configure.ClientsConfigure)
 	//иницилизируем канал для передачи системной информации
 	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
@@ -221,6 +224,8 @@ func init() {
 			}
 		}
 	}()
+
+	informationFilteringTask.TaskID = make(map[string]*configure.TaskInformation)
 }
 
 func main() {

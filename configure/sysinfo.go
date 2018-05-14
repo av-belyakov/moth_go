@@ -6,7 +6,6 @@ package configure
 * */
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"regexp"
@@ -235,7 +234,6 @@ func (sysInfo *SysInfo) CreateLoadNetworkInterface(done chan<- struct{}, errMsg 
 	for i := 0; i < len(listIface); i++ {
 		answerNetIface = <-answer
 		if answerNetIface.ErrMsg != nil {
-			fmt.Println(answerNetIface.ErrMsg)
 			errMsg <- answerNetIface.ErrMsg
 		}
 

@@ -5,8 +5,8 @@ package configure
 * Версия 0.1, дата релиза 19.03.2018
 * */
 
-//FilterinInfoPattern является шаблоном типа Info
-type FilterinInfoPattern struct {
+//FilterInfoPattern является шаблоном типа Info
+type FilterInfoPattern struct {
 	Processing string `json:"processing"`
 	TaskIndex  string `json:"taskIndex"`
 	IPAddress  string `json:"ipAddress"`
@@ -30,13 +30,13 @@ type InfoProcessingFile struct {
 
 //MessageTypeFilteringCompleteInfo детальная информация при ЗАВЕРШЕНИИ выполнения фильтрации
 type MessageTypeFilteringCompleteInfo struct {
-	FilterinInfoPattern
-	CountCycleComplete int `json:"countCycleComplete"`
+	FilterInfoPattern
+	FilterCountPattern
 }
 
 //MessageTypeFilteringStartInfoFirstPart детальная информаци, первый фрагмент (без имен файлов)
 type MessageTypeFilteringStartInfoFirstPart struct {
-	FilterinInfoPattern
+	FilterInfoPattern
 	FilterCountPattern
 	DirectoryFiltering      string         `json:"directoryFiltering"`
 	CountDirectoryFiltering int            `json:"countDirectoryFiltering"`
@@ -50,29 +50,18 @@ type MessageTypeFilteringStartInfoFirstPart struct {
 
 //MessageTypeFilteringStartInfoSecondPart детальная информация с именами файлов
 type MessageTypeFilteringStartInfoSecondPart struct {
-	FilterinInfoPattern
+	FilterInfoPattern
 	NumberMessageParts [2]int              `json:"numberMessageParts"`
 	ListFilesFilter    map[string][]string `json:"listFilesFilter"`
 }
 
 //MessageTypeFilteringExecuteOrUnexecuteInfo детальная информация при выполнении или не выполнении фильтрации
 type MessageTypeFilteringExecuteOrUnexecuteInfo struct {
-	FilterinInfoPattern
+	FilterInfoPattern
 	FilterCountPattern
 	ProcessingFile InfoProcessingFile `json:"infoProcessingFile"`
-	//	UnprocessingFile string `json:"unprocessingFile"`
 }
 
-/*
-"messageType": "filtering",
-                    "processing": "execute",
-                    "clientIp": self.stringRequest.clientIp,
-                    "taskIndex": self.taskIndex,
-                    "countFilesFound": countFilesFound,
-                    "countFilesProcessed": countFilesProcessed,
-                    "countCycleComplete": countCycleComplete,
-                    "countFoundFilesSize": countFoundFilesSize
-*/
 //MessageTypeFilteringStartFirstPart при начале фильтрации (первая часть)
 type MessageTypeFilteringStartFirstPart struct {
 	MessageType string                                 `json:"messageType"`

@@ -11,17 +11,18 @@ import (
 *  Коды ошибок:
 *
 * 400 - неверно сформированный запрос (совсем неверно сформированный запрос)
-* 401 - файлы для експорта не найден
+* 401 - не найдены файлы для экспорта
 * 403 - пользователь не авторизован
 * 404 - запрашиваемый ресур не найден (когда переданный пользователем messageType не найден)
 * 405 - неожиданный метод запроса
 * 406 - переданны неверные данные (как правило данные для фильтрации)
-* 409 - совпадение идентификатора процесса
+* 409 - несовпадение идентификатора процесса
 * 410 - превышен максимальный лимит одновременно выполняемых задач
 * 412 - условие ложное (когда параметры фильтрации корректны но по ним не найденно ни одного файла)
 * 413 - отсутствуют файлы соответствующие заданному временному интервалу
 * 414 - ошибка при попытке остановить загрузку файлов
 * 415 - превышен лимит количества попыток повторной передачи файлов
+*
 * 500 - внутренная ошибка сервера (любая внутренняя ошибка сервера)
 *
 * */
@@ -67,7 +68,7 @@ func SendErrorMessage(options Options) error {
 		"clientError":                              DetailedMessage{404, "Page not found"},
 		"unexpectedMethod":                         DetailedMessage{405, "Unexpected request method"},
 		"unexpectedValue":                          DetailedMessage{406, "Received unexpected value"},
-		"coincidenceId":                            DetailedMessage{409, "Coincidence processId"},
+		"no coincidenceId":                         DetailedMessage{409, "No coincidence processId"},
 		"limitTasks":                               DetailedMessage{410, "Exceeding the maximum limit of tasks"},
 		"userDataIncorrect":                        DetailedMessage{412, "Precondition failed"},
 		"noFilesMatchingConfiguredInterval":        DetailedMessage{413, "There are no files matching the configured interval"},

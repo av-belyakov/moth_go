@@ -18,77 +18,22 @@ var messageType MessageType
 var messageTypePing processingWebsocketRequest.MessageTypePing
 var messageTypeFilter configure.MessageTypeFilter
 
-func actionConnectionBroken(accessClientsConfigure *configure.AccessClientsConfigure, remoteIP string) {
-	//удаляем информацию о конфигурации для данного IP
-	delete(accessClientsConfigure.Addresses, remoteIP)
-}
-
 //sendFilterTaskInfo отправляет сообщение о выполняемой или выполненной задаче по фильтрации сет. трафика
-func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, accessClientsConfigure *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
 	for taskIndex, task := range ift.TaskID {
-
-		/*
-			!!!!!
-			ПЕРЕДЕЛАТЬ ОСНОВЫВАЯСЬ НА СТАТУСЕ mtfeou.Info.ProcessingFile.StatusProcessed
-			для обработанного файла, если complete то тип сообщения должен быть messageTypeFilteringComplete
-			!!!!!
-		*/
+		fmt.Println("FROM TASKS, received filtering task ID:", taskIndex)
 
 		if task.RemoteIP == remoteIP {
-			/*switch {
-			case task.TypeProcessing== "execute":
-
-			case task.TypeProcessing== "complete":
-
-			}*/
-
-			//формируем сообщение о ходе фильтрации
-			var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
-
-			mtfeou.MessageType = "filtering"
-			mtfeou.Info.IPAddress = remoteIP
-			mtfeou.Info.TaskIndex = taskIndex
-			mtfeou.Info.Processing = task.TypeProcessing
-			mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
-			mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
-			mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
-			mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
-			mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
-			mtfeou.Info.CountCycleComplete = task.CountCycleComplete
-			mtfeou.Info.CountFilesFound = task.CountFilesFound
-			mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
-
-			formatJSON, err := json.Marshal(&mtfeou)
-			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-
-			if err := accessClientsConfigure.Addresses[remoteIP].SendWsMessage(1, formatJSON); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-		}
-	}
-}
-
-func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
-	for {
-		msgInfoFilterTask := <-acc.ChanInfoFilterTask
-
-		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
-			task.RemoteIP = msgInfoFilterTask.RemoteIP
-			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
-			task.ProcessingFileName = task.ProcessingFileName
-			task.StatusProcessedFile = task.StatusProcessedFile
-			task.DirectoryFiltering = task.DirectoryFiltering
+			fmt.Println("FROM TASKS", task.RemoteIP, " == ", remoteIP)
 
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
-				switch {
-				case msgInfoFilterTask.TypeProcessing == "execute":
+				switch task.TypeProcessing {
+				case "execute":
 					var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
 					mtfeou.MessageType = "filtering"
-					mtfeou.Info.IPAddress = msgInfoFilterTask.RemoteIP
-					mtfeou.Info.TaskIndex = msgInfoFilterTask.TaskIndex
-					mtfeou.Info.Processing = msgInfoFilterTask.TypeProcessing
+					mtfeou.Info.IPAddress = task.RemoteIP
+					mtfeou.Info.TaskIndex = taskIndex
+					mtfeou.Info.Processing = task.TypeProcessing
 					mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
 					mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
 					mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
@@ -106,16 +51,22 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 					if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
-				case msgInfoFilterTask.TypeProcessing == "complete":
+				case "complete":
 					messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
-						"filtering",
-						configure.MessageTypeFilteringCompleteInfo{
-							FilterinInfoPattern: configure.FilterinInfoPattern{
-								Processing: msgInfoFilterTask.TypeProcessing,
-								TaskIndex:  msgInfoFilterTask.TaskIndex,
-								IPAddress:  msgInfoFilterTask.RemoteIP,
+						MessageType: "filtering",
+						Info: configure.MessageTypeFilteringCompleteInfo{
+							FilterInfoPattern: configure.FilterInfoPattern{
+								Processing: task.TypeProcessing,
+								TaskIndex:  taskIndex,
+								IPAddress:  task.RemoteIP,
 							},
-							CountCycleComplete: task.CountCycleComplete,
+							FilterCountPattern: configure.FilterCountPattern{
+								CountFilesFound:       task.CountFilesFound,
+								CountCycleComplete:    task.CountCycleComplete,
+								CountFoundFilesSize:   task.CountFoundFilesSize,
+								CountFilesProcessed:   task.CountFilesProcessed,
+								CountFilesUnprocessed: task.CountFilesUnprocessed,
+							},
 						},
 					}
 
@@ -128,7 +79,91 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					delete(ift.TaskID, msgInfoFilterTask.TaskIndex)
+					delete(ift.TaskID, taskIndex)
+				}
+			}
+		}
+	}
+}
+
+func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+	sendStopOrCompleteMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
+		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
+			MessageType: "filtering",
+			Info: configure.MessageTypeFilteringCompleteInfo{
+				FilterInfoPattern: configure.FilterInfoPattern{
+					Processing: task.TypeProcessing,
+					TaskIndex:  taskIndex,
+					IPAddress:  task.RemoteIP,
+				},
+				FilterCountPattern: configure.FilterCountPattern{
+					CountFilesFound:       task.CountFilesFound,
+					CountCycleComplete:    task.CountCycleComplete,
+					CountFoundFilesSize:   task.CountFoundFilesSize,
+					CountFilesProcessed:   task.CountFilesProcessed,
+					CountFilesUnprocessed: task.CountFilesUnprocessed,
+				},
+			},
+		}
+
+		fmt.Println("CHANNEL, processing COMPLETE", taskIndex)
+
+		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		delete(ift.TaskID, taskIndex)
+	}
+
+	for {
+		msgInfoFilterTask := <-acc.ChanInfoFilterTask
+
+		fmt.Println("CHANNEL, received filtering task ID:", msgInfoFilterTask.TaskIndex)
+		fmt.Println(ift)
+
+		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
+			task.RemoteIP = msgInfoFilterTask.RemoteIP
+			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
+
+			fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+
+			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
+
+				switch msgInfoFilterTask.TypeProcessing {
+				case "execute":
+					var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
+					mtfeou.MessageType = "filtering"
+					mtfeou.Info.IPAddress = msgInfoFilterTask.RemoteIP
+					mtfeou.Info.TaskIndex = msgInfoFilterTask.TaskIndex
+					mtfeou.Info.Processing = msgInfoFilterTask.TypeProcessing
+					mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
+					mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
+					mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
+					mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
+					mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
+					mtfeou.Info.CountCycleComplete = task.CountCycleComplete
+					mtfeou.Info.CountFilesFound = task.CountFilesFound
+					mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
+
+					fmt.Println("CHANNEL, processing EXECUTE", msgInfoFilterTask.TaskIndex)
+
+					formatJSON, err := json.Marshal(&mtfeou)
+					if err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
+
+					if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
+				case "complete":
+					sendStopOrCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
+				case "stop":
+					sendStopOrCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
 				}
 			}
 		}
@@ -136,19 +171,19 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 }
 
 //RouteWebSocketRequest маршрутизирует запросы
-func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, mc *configure.MothConfig) {
+func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, mc *configure.MothConfig) {
 	fmt.Println("*** RouteWebSocketRequest.go ***")
 
-	c := accessClientsConfigure.Addresses[remoteIP].WsConnection
+	c := acc.Addresses[remoteIP].WsConnection
 
 	chanTypePing := make(chan []byte)
-	chanTypeInfoFilterTask := make(chan configure.ChanInfoFilterTask, (accessClientsConfigure.Addresses[remoteIP].MaxCountProcessFiltering * len(mc.CurrentDisks)))
+	chanTypeInfoFilterTask := make(chan configure.ChanInfoFilterTask, (acc.Addresses[remoteIP].MaxCountProcessFiltering * len(mc.CurrentDisks)))
 	defer func() {
 		close(chanTypePing)
 		close(chanTypeInfoFilterTask)
 	}()
 
-	var parametrsFunctionRequestFilter configure.ParametrsFunctionRequestFilter
+	var prf configure.ParametrsFunctionRequestFilter
 
 	for {
 		_, message, err := c.ReadMessage()
@@ -168,7 +203,7 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			go messageTypePing.RequestTypePing(remoteIP, mc.ExternalIPAddress, accessClientsConfigure, chanTypePing)
+			go messageTypePing.RequestTypePing(remoteIP, mc.ExternalIPAddress, acc, chanTypePing)
 
 			err = c.WriteMessage(1, <-chanTypePing)
 			if err != nil {
@@ -176,29 +211,39 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 			}
 
 			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (если соединение было разорванно и вновь установленно)
-			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, accessClientsConfigure, ift)
+			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, acc, ift)
 
 			//отправка системной информации подключенным источникам
 			go func() {
 				for {
-					messageResponse := <-accessClientsConfigure.ChanInfoTranssmition
+					messageResponse := <-acc.ChanInfoTranssmition
 
 					//fmt.Println("\nSENDING SOURCE INFO TO -----> Flashlight")
 
 					err = c.WriteMessage(1, messageResponse)
 					if err != nil {
+
+						fmt.Println("+++++++++++++++++ disconnect +++++++++++++")
 						fmt.Println(err)
+
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 						//чистим конфигурацию
-						actionConnectionBroken(accessClientsConfigure, remoteIP)
+						fmt.Println("CLEAR client config")
+
+						/*
+						   ПРОБЛЕММА С ЗАДЕРЖКОЙ ПРИ ОЧИСТКЕ ОТОБРАЖЕНИЯ С КОНФИГУРАЦИЕЙ
+						   из-за этого проблемма под пунктом 1 (на листке)
+						*/
+
+						delete(acc.Addresses, remoteIP)
 						return
 					}
 				}
 			}()
 
 			//обработка информационных сообщений получаемых через канал ChanInfoFilterTask
-			go processMsgFilterComingChannel(accessClientsConfigure, ift)
+			go processMsgFilterComingChannel(acc, ift)
 
 		case "filtering":
 			fmt.Println("routing to FILTERING...")
@@ -207,15 +252,18 @@ func RouteWebSocketRequest(remoteIP string, accessClientsConfigure *configure.Ac
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			parametrsFunctionRequestFilter.RemoteIP = remoteIP
-			parametrsFunctionRequestFilter.ExternalIP = mc.ExternalIPAddress
-			parametrsFunctionRequestFilter.CurrentDisks = mc.CurrentDisks
-			parametrsFunctionRequestFilter.PathStorageFilterFiles = mc.PathStorageFilterFiles
-			parametrsFunctionRequestFilter.TypeAreaNetwork = mc.TypeAreaNetwork
-			parametrsFunctionRequestFilter.AccessClientsConfigure = accessClientsConfigure
-			parametrsFunctionRequestFilter.ChanStopTaskFilter = make(chan string, len(mc.CurrentDisks))
+			fmt.Println("FILTER")
+			fmt.Printf("%v", acc)
 
-			go processingWebsocketRequest.RequestTypeFilter(&parametrsFunctionRequestFilter, &messageTypeFilter, ift)
+			prf.RemoteIP = remoteIP
+			prf.ExternalIP = mc.ExternalIPAddress
+			prf.CurrentDisks = mc.CurrentDisks
+			prf.PathStorageFilterFiles = mc.PathStorageFilterFiles
+			prf.TypeAreaNetwork = mc.TypeAreaNetwork
+			prf.AccessClientsConfigure = acc
+			prf.ChanStopTaskFilter = make(chan string, len(mc.CurrentDisks))
+
+			go processingWebsocketRequest.RequestTypeFilter(&prf, &messageTypeFilter, ift)
 
 		case "download files":
 			fmt.Println("routing to DOWNLOAD FILES...")

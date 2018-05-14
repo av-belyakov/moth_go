@@ -126,8 +126,6 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 		return "", true
 	}
 
-	//	if mtf.Info.Processing == "on" {
-
 	//проверяем дату и время
 	if ok = checkDateTime(mtf.Info.Settings.DateTimeStart, mtf.Info.Settings.DateTimeEnd); !ok {
 		fmt.Println("CHECK DATETIME ERROR")
@@ -160,31 +158,17 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 		return "userDataIncorrect", false
 	}
 
-	//проверяем пути и имена файлов которые необходимо отфильтровать
-	/*listFilesFilter, ok := checkNameFilesForFiltering(mtf.Info.Settings.ListFilesFilter, prf.CurrentDisks)
-	if mtf.Info.Settings.UseIndexes && !ok {
-		fmt.Println("CHECK LIST_FILES_FILTERING ERROR")
-
-		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received list files filtering")
-		return "userDataIncorrect", false
-	}*/
-
 	tID := mtf.Info.TaskIndex
 
-	var taskFilter = make(map[string]*configure.TaskInformation)
-	taskFilter[tID] = &configure.TaskInformation{}
-	taskFilter[tID].FilterSettings = &configure.InfoFilterSettings{}
-	ift.TaskID = taskFilter
-
-	ift.TaskID[tID].FilterSettings.DateTimeStart = mtf.Info.Settings.DateTimeStart
-	ift.TaskID[tID].FilterSettings.DateTimeEnd = mtf.Info.Settings.DateTimeEnd
-	ift.TaskID[tID].FilterSettings.IPAddress = listIPAddress
-	ift.TaskID[tID].FilterSettings.Network = listNetwork
-	//		acc.TaskFilter[tID].UseIndexes = mtf.Info.Settings.UseIndexes
-	//acc.TaskFilter[tID].ListFilesFilter = listFilesFilter
-	ift.TaskID[tID].ListFilesFilter = map[string][]string{}
+	ift.TaskID[tID] = &configure.TaskInformation{
+		FilterSettings: &configure.InfoFilterSettings{
+			DateTimeStart: mtf.Info.Settings.DateTimeStart,
+			DateTimeEnd:   mtf.Info.Settings.DateTimeEnd,
+			IPAddress:     listIPAddress,
+			Network:       listNetwork,
+		},
+		ListFilesFilter: map[string][]string{},
+	}
 
 	return "", true
-	//	}
-	//	return "", true
 }
