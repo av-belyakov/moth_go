@@ -159,7 +159,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		EnableCompression: false,
 		//ReadBufferSize:    1024,
 		//WriteBufferSize:   100000000,
-		HandshakeTimeout: (time.Duration(5) * time.Second),
+		HandshakeTimeout: (time.Duration(1) * time.Second),
 	}
 
 	c, err := upgrader.Upgrade(w, req, nil)
@@ -167,7 +167,14 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		c.Close()
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-	defer c.Close()
+	defer func() {
+		c.Close()
+
+		//удаляем информацию о соединении из типа accessClientsConfigure
+		delete(accessClientsConfigure.Addresses, remoteIP)
+
+		fmt.Println("websocket disconnect!!!")
+	}()
 
 	accessClientsConfigure.Addresses[remoteIP].WsConnection = c
 
@@ -212,6 +219,8 @@ func init() {
 	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
 	accessClientsConfigure.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
+	//канал используемый для передачи идентификатора затачи с целью ее дальнейшей остановки
+	accessClientsConfigure.ChanStopTaskFilter = make(chan string, (len(mc.CurrentDisks) * 5))
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)

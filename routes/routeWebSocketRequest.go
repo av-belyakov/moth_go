@@ -123,14 +123,15 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 	for {
 		msgInfoFilterTask := <-acc.ChanInfoFilterTask
 
-		fmt.Println("CHANNEL, received filtering task ID:", msgInfoFilterTask.TaskIndex)
-		fmt.Println(ift)
+		//fmt.Println("CHANNEL, received filtering task ID:", msgInfoFilterTask.TaskIndex)
+		//fmt.Println(ift)
 
 		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
 			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
 
-			fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+			//fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+			_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
 
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 
@@ -150,7 +151,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 					mtfeou.Info.CountFilesFound = task.CountFilesFound
 					mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
 
-					fmt.Println("CHANNEL, processing EXECUTE", msgInfoFilterTask.TaskIndex)
+					//fmt.Println("CHANNEL, processing EXECUTE", msgInfoFilterTask.TaskIndex)
 
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
@@ -218,25 +219,10 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				for {
 					messageResponse := <-acc.ChanInfoTranssmition
 
-					//fmt.Println("\nSENDING SOURCE INFO TO -----> Flashlight")
-
 					err = c.WriteMessage(1, messageResponse)
 					if err != nil {
-
-						fmt.Println("+++++++++++++++++ disconnect +++++++++++++")
-						fmt.Println(err)
-
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
-						//чистим конфигурацию
-						fmt.Println("CLEAR client config")
-
-						/*
-						   ПРОБЛЕММА С ЗАДЕРЖКОЙ ПРИ ОЧИСТКЕ ОТОБРАЖЕНИЯ С КОНФИГУРАЦИЕЙ
-						   из-за этого проблемма под пунктом 1 (на листке)
-						*/
-
-						delete(acc.Addresses, remoteIP)
 						return
 					}
 				}
@@ -252,16 +238,12 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			fmt.Println("FILTER")
-			fmt.Printf("%v", acc)
-
 			prf.RemoteIP = remoteIP
 			prf.ExternalIP = mc.ExternalIPAddress
 			prf.CurrentDisks = mc.CurrentDisks
 			prf.PathStorageFilterFiles = mc.PathStorageFilterFiles
 			prf.TypeAreaNetwork = mc.TypeAreaNetwork
 			prf.AccessClientsConfigure = acc
-			prf.ChanStopTaskFilter = make(chan string, len(mc.CurrentDisks))
 
 			go processingWebsocketRequest.RequestTypeFilter(&prf, &messageTypeFilter, ift)
 
