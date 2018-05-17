@@ -59,7 +59,7 @@ type MessageTypeFilteringStartInfoSecondPart struct {
 type MessageTypeFilteringExecuteOrUnexecuteInfo struct {
 	FilterInfoPattern
 	FilterCountPattern
-	ProcessingFile InfoProcessingFile `json:"infoProcessingFile"`
+	InfoProcessingFile `json:"infoProcessingFile"`
 }
 
 //MessageTypeFilteringStartFirstPart при начале фильтрации (первая часть)

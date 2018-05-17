@@ -29,20 +29,28 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 				switch task.TypeProcessing {
 				case "execute":
-					var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
-					mtfeou.MessageType = "filtering"
-					mtfeou.Info.IPAddress = task.RemoteIP
-					mtfeou.Info.TaskIndex = taskIndex
-					mtfeou.Info.Processing = task.TypeProcessing
-					mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
-					mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
-					mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
-					mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
-					mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
-					mtfeou.Info.CountCycleComplete = task.CountCycleComplete
-					mtfeou.Info.CountFilesFound = task.CountFilesFound
-					mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
-
+					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
+						MessageType: "filtering",
+						Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
+							configure.FilterInfoPattern{
+								IPAddress:  task.RemoteIP,
+								TaskIndex:  taskIndex,
+								Processing: task.TypeProcessing,
+							},
+							configure.FilterCountPattern{
+								CountFilesProcessed:   task.CountFilesProcessed,
+								CountFilesUnprocessed: task.CountFilesUnprocessed,
+								CountCycleComplete:    task.CountCycleComplete,
+								CountFilesFound:       task.CountFilesFound,
+								CountFoundFilesSize:   task.CountFoundFilesSize,
+							},
+							configure.InfoProcessingFile{
+								FileName:          task.ProcessingFileName,
+								DirectoryLocation: task.DirectoryFiltering,
+								StatusProcessed:   task.StatusProcessedFile,
+							},
+						},
+					}
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -106,7 +114,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			},
 		}
 
-		fmt.Println("CHANNEL, processing COMPLETE", taskIndex)
+		fmt.Println("CHANNEL, processing", task.TypeProcessing, "task ID:", taskIndex)
 
 		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
 		if err != nil {
@@ -118,6 +126,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 		}
 
 		delete(ift.TaskID, taskIndex)
+		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
 	}
 
 	for {
@@ -130,26 +139,52 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
 			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
 
+			if msgInfoFilterTask.TypeProcessing == "stop" {
+				fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+			}
+
 			//fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
-			_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
+			//_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
 
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 
 				switch msgInfoFilterTask.TypeProcessing {
 				case "execute":
-					var mtfeou configure.MessageTypeFilteringExecutedOrUnexecuted
-					mtfeou.MessageType = "filtering"
-					mtfeou.Info.IPAddress = msgInfoFilterTask.RemoteIP
-					mtfeou.Info.TaskIndex = msgInfoFilterTask.TaskIndex
-					mtfeou.Info.Processing = msgInfoFilterTask.TypeProcessing
-					mtfeou.Info.ProcessingFile.FileName = task.ProcessingFileName
-					mtfeou.Info.ProcessingFile.DirectoryLocation = task.DirectoryFiltering
-					mtfeou.Info.ProcessingFile.StatusProcessed = task.StatusProcessedFile
-					mtfeou.Info.CountFilesProcessed = task.CountFilesProcessed
-					mtfeou.Info.CountFilesUnprocessed = task.CountFilesUnprocessed
-					mtfeou.Info.CountCycleComplete = task.CountCycleComplete
-					mtfeou.Info.CountFilesFound = task.CountFilesFound
-					mtfeou.Info.CountFoundFilesSize = task.CountFoundFilesSize
+					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
+						MessageType: "filtering",
+						Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
+							configure.FilterInfoPattern{
+								IPAddress:  msgInfoFilterTask.RemoteIP,
+								TaskIndex:  msgInfoFilterTask.TaskIndex,
+								Processing: msgInfoFilterTask.TypeProcessing,
+							},
+							configure.FilterCountPattern{
+								CountFilesProcessed:   task.CountFilesProcessed,
+								CountFilesUnprocessed: task.CountFilesUnprocessed,
+								CountCycleComplete:    task.CountCycleComplete,
+								CountFilesFound:       msgInfoFilterTask.CountFilesFound,
+								CountFoundFilesSize:   msgInfoFilterTask.CountFoundFilesSize,
+							},
+							configure.InfoProcessingFile{
+								FileName:          msgInfoFilterTask.ProcessingFileName,
+								DirectoryLocation: msgInfoFilterTask.DirectoryName,
+								StatusProcessed:   msgInfoFilterTask.StatusProcessedFile,
+							},
+						},
+					}
+
+					/*
+					   prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
+					   			TaskIndex:           ppf.TaskIndex,
+					   			RemoteIP:            prf.RemoteIP,
+					   			TypeProcessing:      "execute",
+					   			DirectoryName:       ppf.DirectoryName,
+					   			ProcessingFileName:  file,
+					   			CountFilesFound:     countFiles,
+					   			CountFoundFilesSize: fullSizeFiles,
+					   			StatusProcessedFile: statusProcessedFile,
+					   		}
+					*/
 
 					//fmt.Println("CHANNEL, processing EXECUTE", msgInfoFilterTask.TaskIndex)
 

@@ -33,7 +33,7 @@ type SettingsHTTPServer struct {
 }
 
 var mc configure.MothConfig
-var accessClientsConfigure configure.AccessClientsConfigure
+var acc configure.AccessClientsConfigure
 var listAccessIPAddress ListAccessIPAddress
 
 var informationFilteringTask configure.InformationFilteringTask
@@ -134,19 +134,19 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 	} else {
 		http.Redirect(w, req, "https://"+settingsHTTPServer.IP+":"+settingsHTTPServer.Port+"/wss", 301)
 
-		if !accessClientsConfigure.IPAddressIsExist(strings.Split(req.RemoteAddr, ":")[0]) {
+		if !acc.IPAddressIsExist(strings.Split(req.RemoteAddr, ":")[0]) {
 			remoteAddr := strings.Split(req.RemoteAddr, ":")[0]
 
 			fmt.Println("GET reomte IP ", remoteAddr)
 
-			accessClientsConfigure.Addresses[remoteAddr] = &configure.ClientsConfigure{}
+			acc.Addresses[remoteAddr] = &configure.ClientsConfigure{}
 		}
 	}
 }
 
 func serverWss(w http.ResponseWriter, req *http.Request) {
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
-	if !accessClientsConfigure.IPAddressIsExist(remoteIP) {
+	if !acc.IPAddressIsExist(remoteIP) {
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
 		return
@@ -170,15 +170,15 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		c.Close()
 
-		//удаляем информацию о соединении из типа accessClientsConfigure
-		delete(accessClientsConfigure.Addresses, remoteIP)
+		//удаляем информацию о соединении из типа acc
+		delete(acc.Addresses, remoteIP)
 
 		fmt.Println("websocket disconnect!!!")
 	}()
 
-	accessClientsConfigure.Addresses[remoteIP].WsConnection = c
+	acc.Addresses[remoteIP].WsConnection = c
 
-	routes.RouteWebSocketRequest(remoteIP, &accessClientsConfigure, &informationFilteringTask, &mc)
+	routes.RouteWebSocketRequest(remoteIP, &acc, &informationFilteringTask, &mc)
 }
 
 func init() {
@@ -209,18 +209,18 @@ func init() {
 	//читаем вспомогательный конфигурационный файл в формате INI
 	err = readSecondaryConfig(&mc)
 	if err != nil {
-		msg := "файл zsensor.conf отсутствует, используем основной конфигурационный файл"
+		msg := "конфигурационный файл zsensor.conf отсутствует, используем основной конфигурационный файл"
 		_ = saveMessageApp.LogMessage("info", msg)
 		log.Println(msg)
 	}
 
-	accessClientsConfigure.Addresses = make(map[string]*configure.ClientsConfigure)
+	acc.Addresses = make(map[string]*configure.ClientsConfigure)
 	//иницилизируем канал для передачи системной информации
-	accessClientsConfigure.ChanInfoTranssmition = make(chan []byte)
+	acc.ChanInfoTranssmition = make(chan []byte)
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
-	accessClientsConfigure.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
-	//канал используемый для передачи идентификатора затачи с целью ее дальнейшей остановки
-	accessClientsConfigure.ChanStopTaskFilter = make(chan string, (len(mc.CurrentDisks) * 5))
+	acc.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
+	//канал для передачи названия директории и ID задачи по которым фильтрация была закончена
+	//acc.ChanCompleteDirTaskFilter = make(chan configure.ChanDone, (len(mc.CurrentDisks) * 5))
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)
@@ -229,7 +229,7 @@ func init() {
 		for {
 			select {
 			case <-ticker.C:
-				go sysInfo.GetSystemInformation(accessClientsConfigure.ChanInfoTranssmition, &mc)
+				go sysInfo.GetSystemInformation(acc.ChanInfoTranssmition, &mc)
 			}
 		}
 	}()

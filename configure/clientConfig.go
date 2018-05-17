@@ -22,17 +22,27 @@ type ClientsConfigure struct {
 
 //ChanInfoFilterTask описание типа канала для передачи информации о фильтрации
 type ChanInfoFilterTask struct {
-	TaskIndex      string
-	RemoteIP       string
-	TypeProcessing string
+	TaskIndex           string
+	RemoteIP            string
+	TypeProcessing      string
+	DirectoryName       string
+	ProcessingFileName  string
+	CountFilesFound     int
+	CountFoundFilesSize int64
+	StatusProcessedFile bool
 }
+
+//ChanDone содержит информацию о завершенной задаче
+/*type ChanDone struct {
+	TaskIndex, DirectoryName, TypeProcessing string
+}*/
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
 	Addresses            map[string]*ClientsConfigure
 	ChanInfoTranssmition chan []byte             //канал для передачи системной информации
 	ChanInfoFilterTask   chan ChanInfoFilterTask //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
-	ChanStopTaskFilter   chan string             //канал используемый для передачи идентификатора затачи с целью ее дальнейшей остановки
+	//ChanCompleteDirTaskFilter chan ChanDone           //канал в котором передается название ID задачи и название обработанной директории
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket
