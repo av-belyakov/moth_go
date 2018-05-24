@@ -94,6 +94,7 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 	}
 }
 
+//processMsgFilterComingChannel обрабатывает иформацию о фильтрации получаемую из канала
 func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
 	sendStopOrCompleteMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
 		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
@@ -114,8 +115,6 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			},
 		}
 
-		fmt.Println("CHANNEL, processing", task.TypeProcessing, "task ID:", taskIndex)
-
 		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -132,20 +131,17 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 	for {
 		msgInfoFilterTask := <-acc.ChanInfoFilterTask
 
-		//fmt.Println("CHANNEL, received filtering task ID:", msgInfoFilterTask.TaskIndex)
-		//fmt.Println(ift)
-
 		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
 			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
 
-			if msgInfoFilterTask.TypeProcessing == "stop" {
-				fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
-			}
+			/*			if msgInfoFilterTask.TypeProcessing == "stop" {
+							fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+						}
 
-			//fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
-			//_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
-
+						fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
+						_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
+			*/
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 
 				switch msgInfoFilterTask.TypeProcessing {
@@ -173,21 +169,6 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						},
 					}
 
-					/*
-					   prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
-					   			TaskIndex:           ppf.TaskIndex,
-					   			RemoteIP:            prf.RemoteIP,
-					   			TypeProcessing:      "execute",
-					   			DirectoryName:       ppf.DirectoryName,
-					   			ProcessingFileName:  file,
-					   			CountFilesFound:     countFiles,
-					   			CountFoundFilesSize: fullSizeFiles,
-					   			StatusProcessedFile: statusProcessedFile,
-					   		}
-					*/
-
-					//fmt.Println("CHANNEL, processing EXECUTE", msgInfoFilterTask.TaskIndex)
-
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
@@ -208,8 +189,6 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 
 //RouteWebSocketRequest маршрутизирует запросы
 func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, mc *configure.MothConfig) {
-	fmt.Println("*** RouteWebSocketRequest.go ***")
-
 	c := acc.Addresses[remoteIP].WsConnection
 
 	chanTypePing := make(chan []byte)
@@ -246,7 +225,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (если соединение было разорванно и вновь установленно)
+			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (выполняется при повторном установлении соединения)
 			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, acc, ift)
 
 			//отправка системной информации подключенным источникам

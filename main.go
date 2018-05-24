@@ -36,7 +36,7 @@ var mc configure.MothConfig
 var acc configure.AccessClientsConfigure
 var listAccessIPAddress ListAccessIPAddress
 
-var informationFilteringTask configure.InformationFilteringTask
+var ift configure.InformationFilteringTask
 
 //ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
 func readMainConfig(fileName string, mc *configure.MothConfig) error {
@@ -172,13 +172,14 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 		//удаляем информацию о соединении из типа acc
 		delete(acc.Addresses, remoteIP)
+		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
 		fmt.Println("websocket disconnect!!!")
 	}()
 
 	acc.Addresses[remoteIP].WsConnection = c
 
-	routes.RouteWebSocketRequest(remoteIP, &acc, &informationFilteringTask, &mc)
+	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &mc)
 }
 
 func init() {
@@ -219,8 +220,6 @@ func init() {
 	acc.ChanInfoTranssmition = make(chan []byte)
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
 	acc.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
-	//канал для передачи названия директории и ID задачи по которым фильтрация была закончена
-	//acc.ChanCompleteDirTaskFilter = make(chan configure.ChanDone, (len(mc.CurrentDisks) * 5))
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)
@@ -234,7 +233,7 @@ func init() {
 		}
 	}()
 
-	informationFilteringTask.TaskID = make(map[string]*configure.TaskInformation)
+	ift.TaskID = make(map[string]*configure.TaskInformation)
 }
 
 func main() {
