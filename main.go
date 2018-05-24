@@ -165,6 +165,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	c, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
 		c.Close()
+
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 	defer func() {
@@ -174,10 +175,37 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		delete(acc.Addresses, remoteIP)
 		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
+		if _, ok := acc.Addresses[remoteIP]; !ok {
+			fmt.Println(ok, " --- --- ----")
+		}
 		fmt.Println("websocket disconnect!!!")
 	}()
 
 	acc.Addresses[remoteIP].WsConnection = c
+
+	acc.ChanWebsocketTranssmition = make(chan []byte)
+
+	go func(acc *configure.AccessClientsConfigure) {
+		for {
+			select {
+			case message := <-acc.ChanWebsocketTranssmition:
+				fmt.Println("--- SEND MESSAGE -> through WEBSOCKET")
+
+				/*
+				   Посмотреть возможность отказа от Mutix
+
+				   При востановления связи после того как задача была выполненна
+				   почему то не отправляется сообщение о завершения фильтрации
+				    понять почему
+				*/
+
+				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+			default:
+			}
+		}
+	}(&acc)
 
 	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &mc)
 }
@@ -228,6 +256,9 @@ func init() {
 		for {
 			select {
 			case <-ticker.C:
+
+				//fmt.Println("next tick get SYSTEM INFO");
+
 				go sysInfo.GetSystemInformation(acc.ChanInfoTranssmition, &mc)
 			}
 		}

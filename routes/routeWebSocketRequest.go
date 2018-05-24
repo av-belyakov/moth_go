@@ -26,7 +26,7 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 		if task.RemoteIP == remoteIP {
 			fmt.Println("FROM TASKS", task.RemoteIP, " == ", remoteIP)
 
-			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
+			if _, ok := acc.Addresses[task.RemoteIP]; ok {
 				switch task.TypeProcessing {
 				case "execute":
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
@@ -56,8 +56,12 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}*/
+
+					if _, ok := acc.Addresses[task.RemoteIP]; ok {
+						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
 					messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
@@ -83,8 +87,12 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}*/
+
+					if _, ok := acc.Addresses[task.RemoteIP]; ok {
+						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 
 					delete(ift.TaskID, taskIndex)
@@ -115,13 +123,20 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			},
 		}
 
+		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
+		fmt.Println(messageTypeFilteringComplete)
+
 		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
 		if err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+		/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}*/
+
+		if _, ok := acc.Addresses[task.RemoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
 		}
 
 		delete(ift.TaskID, taskIndex)
@@ -169,13 +184,19 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						},
 					}
 
+					//					fmt.Printf("%v", mtfeou)
+
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
+					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}*/
+
+					if _, ok := acc.Addresses[task.RemoteIP]; ok {
+						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
 					sendStopOrCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
@@ -220,10 +241,21 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 
 			go messageTypePing.RequestTypePing(remoteIP, mc.ExternalIPAddress, acc, chanTypePing)
 
-			err = c.WriteMessage(1, <-chanTypePing)
+			messagePing := <-chanTypePing
+			if _, ok := acc.Addresses[remoteIP]; ok {
+				acc.ChanWebsocketTranssmition <- messagePing
+			}
+
+			/*if _, ok := acc.Addresses[remoteIP]; ok {
+				if err := acc.Addresses[remoteIP].SendWsMessage(1, <-chanTypePing); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+			}*/
+
+			/*err = c.WriteMessage(1, <-chanTypePing)
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
+			}*/
 
 			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (выполняется при повторном установлении соединения)
 			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, acc, ift)
@@ -231,14 +263,20 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			//отправка системной информации подключенным источникам
 			go func() {
 				for {
+					//					fmt.Println("<--- TRANSSMITION SYSTEM INFORMATION!!!")
+
 					messageResponse := <-acc.ChanInfoTranssmition
 
-					err = c.WriteMessage(1, messageResponse)
+					if _, ok := acc.Addresses[remoteIP]; ok {
+						acc.ChanWebsocketTranssmition <- messageResponse
+					}
+
+					/*err = c.WriteMessage(1, messageResponse)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 						return
-					}
+					}*/
 				}
 			}()
 

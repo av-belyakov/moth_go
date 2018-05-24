@@ -34,9 +34,10 @@ type ChanInfoFilterTask struct {
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
-	Addresses            map[string]*ClientsConfigure
-	ChanInfoTranssmition chan []byte             //канал для передачи системной информации
-	ChanInfoFilterTask   chan ChanInfoFilterTask //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
+	Addresses                 map[string]*ClientsConfigure
+	ChanInfoTranssmition      chan []byte             //канал для передачи системной информации
+	ChanInfoFilterTask        chan ChanInfoFilterTask //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
+	ChanWebsocketTranssmition chan []byte             //канал для отправки сообщений по websocket
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket

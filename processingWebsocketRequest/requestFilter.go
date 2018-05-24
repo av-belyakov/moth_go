@@ -391,8 +391,8 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	//список файлов для фильтрации
 	fullCountFiles, fullSizeFiles := getListFilesForFiltering(prf, mtf, ift)
 
-	//	fmt.Println("full count files found to FILTER: ", fullCountFiles)
-	//	fmt.Println("full size files found to FILTER: ", fullSizeFiles)
+	fmt.Println("full count files found to FILTER: ", fullCountFiles)
+	fmt.Println("full size files found to FILTER: ", fullSizeFiles)
 
 	if fullCountFiles == 0 {
 		_ = saveMessageApp.LogMessage("info", "task ID "+taskIndex+", files needed to perform filtering not found")
@@ -548,10 +548,10 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 				},
 			}
 
-			/*fmt.Println("----- MESSAGE START SECOND -----")
+			fmt.Println("----- MESSAGE START SECOND -----")
 			for key, v := range listFiles {
 				fmt.Println(key, " = ", len(v))
-			}*/
+			}
 
 			formatJSON, err := json.Marshal(&messageFilteringStart)
 			if err != nil {
@@ -580,6 +580,12 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	done := make(chan ChanDone, infoTaskFilter.CountDirectoryFiltering)
 
 	for dir := range listFilesFilter {
+		if len(listFilesFilter[dir]) == 0 {
+			continue
+		}
+
+		fmt.Println("count file from dir:", len(listFilesFilter[dir]))
+
 		patternParametersFiltering := PatternParametersFiltering{
 			TaskIndex:              taskIndex,
 			DirectoryName:          dir,
@@ -588,7 +594,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 			ListFiles:              &ift.TaskID[taskIndex].ListFilesFilter,
 		}
 
-		//fmt.Println("START process filter with task ID", taskIndex, "and directory name", dir)
+		fmt.Println("START process filter with task ID", taskIndex, "and directory name", dir)
 		//		_ = saveMessageApp.LogMessage("info", "START process filter with task ID "+mtf.Info.TaskIndex+" and directory name "+dir)
 
 		//запуск процесса фильтрации
@@ -620,8 +626,8 @@ func filterProcessing(done chan<- ChanDone, ppf PatternParametersFiltering, patt
 		}
 
 		if ift.TaskID[ppf.TaskIndex].IsProcessStop {
-			//fmt.Println("************* IsProcessStop =", ift.TaskID[ppf.TaskIndex].IsProcessStop)
-			//fmt.Println("*************** task ID", ppf.TaskIndex)
+			fmt.Println("************* IsProcessStop =", ift.TaskID[ppf.TaskIndex].IsProcessStop)
+			fmt.Println("*************** task ID", ppf.TaskIndex)
 
 			done <- ChanDone{
 				TaskIndex:      ppf.TaskIndex,
@@ -671,7 +677,7 @@ func filterProcessing(done chan<- ChanDone, ppf PatternParametersFiltering, patt
 		}
 	}
 
-	//fmt.Println("--------- Filter dir name:", ppf.DirectoryName, "STOP task ID", ppf.TaskIndex)
+	fmt.Println("--------- Filter dir name:", ppf.DirectoryName, "COMPLETE task ID", ppf.TaskIndex)
 
 	done <- ChanDone{
 		TaskIndex:      ppf.TaskIndex,
