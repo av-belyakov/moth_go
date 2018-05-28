@@ -191,14 +191,6 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			case message := <-acc.ChanWebsocketTranssmition:
 				fmt.Println("--- SEND MESSAGE -> through WEBSOCKET")
 
-				/*
-				   Посмотреть возможность отказа от Mutix
-
-				   При востановления связи после того как задача была выполненна
-				   почему то не отправляется сообщение о завершения фильтрации
-				    понять почему
-				*/
-
 				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}

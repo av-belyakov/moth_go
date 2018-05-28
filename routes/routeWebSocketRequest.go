@@ -21,12 +21,15 @@ var messageTypeFilter configure.MessageTypeFilter
 //sendFilterTaskInfo отправляет сообщение о выполняемой или выполненной задаче по фильтрации сет. трафика
 func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
 	for taskIndex, task := range ift.TaskID {
-		fmt.Println("FROM TASKS, received filtering task ID:", taskIndex)
+		fmt.Println("AFTER start CONNECT FROM TASKS, received filtering task ID:", taskIndex)
 
 		if task.RemoteIP == remoteIP {
 			fmt.Println("FROM TASKS", task.RemoteIP, " == ", remoteIP)
 
 			if _, ok := acc.Addresses[task.RemoteIP]; ok {
+
+				fmt.Println("TYPE MSG", task.TypeProcessing)
+
 				switch task.TypeProcessing {
 				case "execute":
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
@@ -51,20 +54,20 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 							},
 						},
 					}
+
+					fmt.Println("+++ function sendFilterTaskInfoAfterPingMessage, execute")
+					fmt.Println(mtfeou)
+
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-					}*/
-
 					if _, ok := acc.Addresses[task.RemoteIP]; ok {
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
-					messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
+					mtfc := configure.MessageTypeFilteringComplete{
 						MessageType: "filtering",
 						Info: configure.MessageTypeFilteringCompleteInfo{
 							FilterInfoPattern: configure.FilterInfoPattern{
@@ -82,14 +85,10 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 						},
 					}
 
-					formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
+					formatJSON, err := json.Marshal(&mtfc)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
-
-					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-					}*/
 
 					if _, ok := acc.Addresses[task.RemoteIP]; ok {
 						acc.ChanWebsocketTranssmition <- formatJSON
@@ -131,10 +130,6 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}*/
-
 		if _, ok := acc.Addresses[task.RemoteIP]; ok {
 			acc.ChanWebsocketTranssmition <- formatJSON
 		}
@@ -147,20 +142,23 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 		msgInfoFilterTask := <-acc.ChanInfoFilterTask
 
 		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
+
+			fmt.Println("====== RESIVED FROM CHAN MSG type processing", msgInfoFilterTask.TypeProcessing, "TYPE PROCESSING SAVE TASK", task.TypeProcessing)
+
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
-			task.TypeProcessing = msgInfoFilterTask.TypeProcessing
+			task.CountFilesFound = msgInfoFilterTask.CountFilesFound
+			task.CountFoundFilesSize = msgInfoFilterTask.CountFoundFilesSize
+			task.ProcessingFileName = msgInfoFilterTask.ProcessingFileName
+			task.StatusProcessedFile = msgInfoFilterTask.StatusProcessedFile
 
-			/*			if msgInfoFilterTask.TypeProcessing == "stop" {
-							fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
-						}
-
-						fmt.Println("CHANNEL, task ID is exist", msgInfoFilterTask.TaskIndex)
-						_ = saveMessageApp.LogMessage("info", "CHANNEL, task ID is exist"+msgInfoFilterTask.TaskIndex)
-			*/
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 
 				switch msgInfoFilterTask.TypeProcessing {
 				case "execute":
+					if (task.TypeProcessing == "stop") || (task.TypeProcessing == "complete") {
+						continue
+					}
+
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
 						MessageType: "filtering",
 						Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
@@ -184,16 +182,10 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						},
 					}
 
-					//					fmt.Printf("%v", mtfeou)
-
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
-
-					/*if err := sourceData.SendWsMessage(1, formatJSON); err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-					}*/
 
 					if _, ok := acc.Addresses[task.RemoteIP]; ok {
 						acc.ChanWebsocketTranssmition <- formatJSON
@@ -246,37 +238,19 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				acc.ChanWebsocketTranssmition <- messagePing
 			}
 
-			/*if _, ok := acc.Addresses[remoteIP]; ok {
-				if err := acc.Addresses[remoteIP].SendWsMessage(1, <-chanTypePing); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-				}
-			}*/
-
-			/*err = c.WriteMessage(1, <-chanTypePing)
-			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}*/
-
 			//отправляем сообщение о выполняемой или выполненной задачи по фильтрации (выполняется при повторном установлении соединения)
 			sendFilterTaskInfoAfterPingMessage(remoteIP, mc.ExternalIPAddress, acc, ift)
 
 			//отправка системной информации подключенным источникам
 			go func() {
 				for {
-					//					fmt.Println("<--- TRANSSMITION SYSTEM INFORMATION!!!")
+					fmt.Println("<--- TRANSSMITION SYSTEM INFORMATION!!!")
 
 					messageResponse := <-acc.ChanInfoTranssmition
 
 					if _, ok := acc.Addresses[remoteIP]; ok {
 						acc.ChanWebsocketTranssmition <- messageResponse
 					}
-
-					/*err = c.WriteMessage(1, messageResponse)
-					if err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-
-						return
-					}*/
 				}
 			}()
 

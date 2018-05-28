@@ -56,8 +56,6 @@ func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTa
 	currentListFilesFiltering.Path = disk
 	currentListFilesFiltering.SizeFiles = 0
 
-	//	fmt.Println("Search files for " + disk + " directory")
-
 	if currentTask.UseIndexes {
 		for _, file := range currentTask.ListFilesFilter[disk] {
 			fileInfo, err := os.Stat(path.Join(disk, file))
@@ -360,23 +358,17 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 		var responseDone ChanDone
 
 		for dirComplete < fmfc.countDirectory {
-			//			fmt.Println("dirComplete", dirComplete, "<", fmfc.countDirectory, "fmfc.countDirectory")
-
 			responseDone = <-done
 			if fmfc.taskIndex == responseDone.TaskIndex {
-				//				fmt.Println("RESIVED STOP request, task ID", responseDone.TaskIndex)
-				//				fmt.Println("dir name:", responseDone.DirectoryName)
-
 				dirComplete++
 			}
 		}
 
-		/*
-			fmt.Println("==========================================")
-			fmt.Println("--- FILTERING COMPLITE --- directory filtering is ", fmfc.countDirectory)
-			fmt.Println("--- Task ID", fmfc.taskIndex)
-			fmt.Println("==========================================")
-		*/
+		fmt.Println("==========================================")
+		fmt.Println("--- FILTERING COMPLITE --- directory filtering is ", fmfc.countDirectory)
+		fmt.Println("--- Task ID", fmfc.taskIndex)
+		fmt.Println("--- response Type Processing", responseDone.TypeProcessing)
+		fmt.Println("==========================================")
 
 		//формируем канал для передачи информации о фильтрации
 		prf.AccessClientsConfigure.ChanInfoFilterTask <- configure.ChanInfoFilterTask{
@@ -384,6 +376,9 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 			RemoteIP:       fmfc.remoteIP,
 			TypeProcessing: responseDone.TypeProcessing,
 		}
+
+		//изменяем статус задачи на stop или complete
+		ift.TaskID[taskIndex].TypeProcessing = responseDone.TypeProcessing
 
 		defer close(done)
 	}
@@ -548,10 +543,10 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 				},
 			}
 
-			fmt.Println("----- MESSAGE START SECOND -----")
+			/*fmt.Println("----- MESSAGE START SECOND -----")
 			for key, v := range listFiles {
 				fmt.Println(key, " = ", len(v))
-			}
+			}*/
 
 			formatJSON, err := json.Marshal(&messageFilteringStart)
 			if err != nil {
@@ -572,19 +567,12 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 
 	listFilesFilter := ift.TaskID[taskIndex].ListFilesFilter
 
-	/*
-		fmt.Println("!!!!!!!!!!! COUNT DIRECTORY =", len(listFilesFilter))
-		fmt.Println("count dir for filter (create CHAN DONE)", infoTaskFilter.CountDirectoryFiltering)
-	*/
-
 	done := make(chan ChanDone, infoTaskFilter.CountDirectoryFiltering)
 
 	for dir := range listFilesFilter {
 		if len(listFilesFilter[dir]) == 0 {
 			continue
 		}
-
-		fmt.Println("count file from dir:", len(listFilesFilter[dir]))
 
 		patternParametersFiltering := PatternParametersFiltering{
 			TaskIndex:              taskIndex,
@@ -600,6 +588,9 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 		//запуск процесса фильтрации
 		go filterProcessing(done, patternParametersFiltering, patternBashScript(patternParametersFiltering, mtf), prf, ift)
 	}
+
+	//изменяем статус задачи на execute
+	ift.TaskID[taskIndex].TypeProcessing = "execute"
 
 	formingMessageFilterComplete := FormingMessageFilterComplete{
 		taskIndex:      taskIndex,

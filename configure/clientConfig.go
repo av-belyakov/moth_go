@@ -40,13 +40,18 @@ type AccessClientsConfigure struct {
 	ChanWebsocketTranssmition chan []byte             //канал для отправки сообщений по websocket
 }
 
-//SendWsMessage используется для отправки сообщений через протокол websocket
+//SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
 func (clientsConfigure *ClientsConfigure) SendWsMessage(t int, v []byte) error {
 	clientsConfigure.mu.Lock()
 	defer clientsConfigure.mu.Unlock()
 
 	return clientsConfigure.WsConnection.WriteMessage(t, v)
 }
+
+//SendWsMessage используется для отправки сообщений через протокол websocket (без Mutex)
+/*func (clientsConfigure *ClientsConfigure) SendWsMessage(t int, v []byte) error {
+	return clientsConfigure.WsConnection.WriteMessage(t, v)
+}*/
 
 //IPAddressIsExist поиск ip адреса в срезе AccessIPAddress
 func (a *AccessClientsConfigure) IPAddressIsExist(ipaddress string) bool {

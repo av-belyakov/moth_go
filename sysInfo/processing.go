@@ -62,5 +62,7 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
+	fmt.Println("CREATE INFORMATION MESSAGE ----")
+
 	out <- formatJSON
 }
