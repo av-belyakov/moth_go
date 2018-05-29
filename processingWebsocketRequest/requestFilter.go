@@ -269,7 +269,7 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 		executeFiltering(prf, mft, ift)
 	}
 
-	if mft.Info.Settings.CountIndexesFiles[0] > 0 {
+	if mft.Info.Settings.CountPartsIndexFiles[0] > 0 {
 
 		fmt.Println("\nADD INDEX FILES IN ListFiles 2222")
 
@@ -279,7 +279,7 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 			listFilesFilter[dir] = append(listFilesFilter[dir], listName...)
 		}
 
-		if mft.Info.Settings.CountIndexesFiles[0] == mft.Info.Settings.CountIndexesFiles[1] {
+		if mft.Info.Settings.CountPartsIndexFiles[0] == mft.Info.Settings.CountPartsIndexFiles[1] {
 			fmt.Println("\nSTART FILTER WITH Index 3333")
 
 			executeFiltering(prf, mft, ift)

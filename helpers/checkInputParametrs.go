@@ -120,7 +120,7 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 
 	fmt.Printf("%v", mtf.Info.Settings)
 
-	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountIndexesFiles[0] > 0) {
+	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountPartsIndexFiles[0] > 0) {
 		fmt.Println("++ +++ ++++ Message type is OFF or use INDEX and seconds chunk --- --- ---")
 
 		return "", true
