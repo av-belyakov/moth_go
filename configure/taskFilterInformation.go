@@ -34,8 +34,9 @@ type TaskInformation struct {
 	CountMaxFilesSize       int64
 	CountFoundFilesSize     int64
 	ListFilesFilter
-	TypeProcessing string
-	IsProcessStop  bool
+	TotalNumberFilesFilter int
+	TypeProcessing         string
+	IsProcessStop          bool
 }
 
 //InformationFilteringTask хранит информацию о выполняющихся задачах по фильтрации сет. трафика

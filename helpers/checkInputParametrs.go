@@ -118,7 +118,7 @@ func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisk
 func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *configure.MessageTypeFilter) (string, bool) {
 	var ok bool
 
-	fmt.Printf("%v", mtf.Info.Settings)
+	//fmt.Printf("%v", mtf.Info.Settings)
 
 	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountPartsIndexFiles[0] > 0) {
 		fmt.Println("++ +++ ++++ Message type is OFF or use INDEX and seconds chunk --- --- ---")

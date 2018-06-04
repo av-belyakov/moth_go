@@ -89,7 +89,7 @@ func searchFiles(result chan<- CurrentListFilesFiltering, disk string, currentTa
 }
 
 //подготовка списка файлов по которым будет выполнятся фильтрация
-func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) (int, int64) {
+func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) /*(int, int64)*/ {
 
 	fmt.Println("START function getListFilesForFiltering...")
 
@@ -130,7 +130,12 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 
 	fmt.Println("STOP function getListFilesForFiltering")
 
-	return fullCountFiles, fullSizeFiles
+	//общее количество фильтруемых файлов
+	currentTask.CountFilesFiltering = fullCountFiles
+	//общий размер фильтруемых файлов
+	currentTask.CountMaxFilesSize = fullSizeFiles
+
+	//	return fullCountFiles, fullSizeFiles
 }
 
 //формируем шаблон для фильтрации
@@ -384,12 +389,13 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	}
 
 	//список файлов для фильтрации
-	fullCountFiles, fullSizeFiles := getListFilesForFiltering(prf, mtf, ift)
+	/*fullCountFiles, fullSizeFiles := */
+	getListFilesForFiltering(prf, mtf, ift)
 
-	fmt.Println("full count files found to FILTER: ", fullCountFiles)
-	fmt.Println("full size files found to FILTER: ", fullSizeFiles)
+	fmt.Println("full count files found to FILTER: ", ift.TaskID[taskIndex].CountFilesFiltering)
+	fmt.Println("full size files found to FILTER: ", ift.TaskID[taskIndex].CountMaxFilesSize)
 
-	if fullCountFiles == 0 {
+	if ift.TaskID[taskIndex].CountMaxFilesSize == 0 {
 		_ = saveMessageApp.LogMessage("info", "task ID "+taskIndex+", files needed to perform filtering not found")
 
 		//сообщение пользователю
@@ -435,11 +441,11 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	//количество директорий для фильтрации
 	infoTaskFilter.CountDirectoryFiltering = ift.GetCountDirectoryFiltering(taskIndex)
 	//общее количество фильтруемых файлов
-	infoTaskFilter.CountFilesFiltering = fullCountFiles
+	//infoTaskFilter.CountFilesFiltering = fullCountFiles
 	//количество полных циклов
 	infoTaskFilter.CountFullCycle = infoTaskFilter.CountFilesFiltering
 	//общий размер фильтруемых файлов
-	infoTaskFilter.CountMaxFilesSize = fullSizeFiles
+	//infoTaskFilter.CountMaxFilesSize = fullSizeFiles
 
 	listCountFilesFilter := make(map[string]int)
 
@@ -701,7 +707,7 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mtf *co
 }
 
 //RequestTypeFilter обрабатывает запросы связанные с фильтрацией
-func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
+func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 	fmt.Println("\nFILTERING: function RequestTypeFilter STARTING...")
 
 	//проверяем количество одновременно выполняемых задач
@@ -717,9 +723,13 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		}
 		return
 	}
-
+	/*
+		fmt.Println("------||||||||||||||----- RequestTypeFilter Start --------------")
+		fmt.Println(mtf.Info.Settings)
+		fmt.Println("------||||||||||||||----- RequestTypeFilter Stop-------------")
+	*/
 	//проверка полученных от пользователя данных (дата и время, список адресов и сетей)
-	if errMsg, ok := helpers.InputParametrsForFiltering(ift, mtf); !ok {
+	if errMsg, ok := helpers.InputParametrsForFiltering(ift, &mtf); !ok {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
 			ErrMsg:     errMsg,
@@ -732,10 +742,38 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *confi
 		return
 	}
 
+	if mtf.Info.Settings.UseIndexes {
+		//объединение списков файлов для задачи (возобновляемой или выполняемой на основе индексов)
+		err, layoutListCompleted := helpers.MergingFileListForTaskFilter(ift, &mtf)
+		if err != nil {
+			if err := errorMessage.SendErrorMessage(errorMessage.Options{
+				RemoteIP:   prf.RemoteIP,
+				ErrMsg:     "unexpectedValue",
+				TaskIndex:  mtf.Info.TaskIndex,
+				ExternalIP: prf.ExternalIP,
+				Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
+			}); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+			return
+		}
+
+		fmt.Println("layoutListCompleted = ", layoutListCompleted)
+
+		//если компоновка списка не завершена
+		if !layoutListCompleted {
+			return
+		}
+
+		//fmt.Println("STOP FILTERING FOR INDEXES *****************")
+
+		//return
+	}
+
 	switch mtf.Info.Processing {
 	case "on":
-		requestFilteringStart(prf, mtf, ift)
+		requestFilteringStart(prf, &mtf, ift)
 	case "off":
-		requestFilteringStop(prf, mtf, ift)
+		requestFilteringStop(prf, &mtf, ift)
 	}
 }
