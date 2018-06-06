@@ -51,6 +51,7 @@ type MessageTypeFilteringStartInfoFirstPart struct {
 //MessageTypeFilteringStartInfoSecondPart детальная информация с именами файлов
 type MessageTypeFilteringStartInfoSecondPart struct {
 	FilterInfoPattern
+	UseIndexes         bool                `json:"useIndexes"`
 	NumberMessageParts [2]int              `json:"numberMessageParts"`
 	ListFilesFilter    map[string][]string `json:"listFilesFilter"`
 }

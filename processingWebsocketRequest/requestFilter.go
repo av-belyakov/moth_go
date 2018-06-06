@@ -389,7 +389,6 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	}
 
 	//список файлов для фильтрации
-	/*fullCountFiles, fullSizeFiles := */
 	getListFilesForFiltering(prf, mtf, ift)
 
 	fmt.Println("full count files found to FILTER: ", ift.TaskID[taskIndex].CountFilesFiltering)
@@ -479,7 +478,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 				CountFullCycle:          infoTaskFilter.CountFullCycle,
 				CountFilesFiltering:     infoTaskFilter.CountFilesFiltering,
 				CountMaxFilesSize:       infoTaskFilter.CountMaxFilesSize,
-				UseIndexes:              false,
+				UseIndexes:              mtf.Info.Settings.UseIndexes,
 				NumberMessageParts:      numberMessageParts,
 				ListCountFilesFilter:    listCountFilesFilter,
 			},
@@ -544,6 +543,7 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 						TaskIndex:  taskIndex,
 						IPAddress:  prf.ExternalIP,
 					},
+					UseIndexes:         mtf.Info.Settings.UseIndexes,
 					NumberMessageParts: numberMessageParts,
 					ListFilesFilter:    listFiles,
 				},
@@ -707,7 +707,7 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mtf *co
 }
 
 //RequestTypeFilter обрабатывает запросы связанные с фильтрацией
-func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
+func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
 	fmt.Println("\nFILTERING: function RequestTypeFilter STARTING...")
 
 	//проверяем количество одновременно выполняемых задач
@@ -729,7 +729,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 		fmt.Println("------||||||||||||||----- RequestTypeFilter Stop-------------")
 	*/
 	//проверка полученных от пользователя данных (дата и время, список адресов и сетей)
-	if errMsg, ok := helpers.InputParametrsForFiltering(ift, &mtf); !ok {
+	if errMsg, ok := helpers.InputParametrsForFiltering(ift, mtf); !ok {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   prf.RemoteIP,
 			ErrMsg:     errMsg,
@@ -742,9 +742,17 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 		return
 	}
 
+	/*if mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountPartsIndexFiles[0] == 0 {
+		chanForMergingFilesList := make(chan *configure.MessageTypeFilter)
+		chanDoneMergingFilesList := make(chan bool)
+		chanError := make(chan error)
+
+		go helpers.MergingFilesListForTaskFilter(chanError, chanDoneMergingFilesList, ift, chanForMergingFilesList)
+	}*/
+
 	if mtf.Info.Settings.UseIndexes {
 		//объединение списков файлов для задачи (возобновляемой или выполняемой на основе индексов)
-		err, layoutListCompleted := helpers.MergingFileListForTaskFilter(ift, &mtf)
+		err, layoutListCompleted := helpers.MergingFileListForTaskFilter(ift, mtf)
 		if err != nil {
 			if err := errorMessage.SendErrorMessage(errorMessage.Options{
 				RemoteIP:   prf.RemoteIP,
@@ -772,8 +780,8 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 
 	switch mtf.Info.Processing {
 	case "on":
-		requestFilteringStart(prf, &mtf, ift)
+		requestFilteringStart(prf, mtf, ift)
 	case "off":
-		requestFilteringStop(prf, &mtf, ift)
+		requestFilteringStop(prf, mtf, ift)
 	}
 }

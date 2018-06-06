@@ -189,7 +189,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		for {
 			select {
 			case message := <-acc.ChanWebsocketTranssmition:
-				fmt.Println("--- SEND MESSAGE -> through WEBSOCKET")
+				//fmt.Println("--- SEND MESSAGE -> through WEBSOCKET")
 
 				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))

@@ -143,7 +143,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 
 		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
 
-			fmt.Println("====== RESIVED FROM CHAN MSG type processing", msgInfoFilterTask.TypeProcessing, "TYPE PROCESSING SAVE TASK", task.TypeProcessing)
+			//fmt.Println("====== RESIVED FROM CHAN MSG type processing", msgInfoFilterTask.TypeProcessing, "TYPE PROCESSING SAVE TASK", task.TypeProcessing)
 
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
 			task.CountFilesFound = msgInfoFilterTask.CountFilesFound
@@ -244,7 +244,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			//отправка системной информации подключенным источникам
 			go func() {
 				for {
-					fmt.Println("<--- TRANSSMITION SYSTEM INFORMATION!!!")
+					//fmt.Println("<--- TRANSSMITION SYSTEM INFORMATION!!!")
 
 					messageResponse := <-acc.ChanInfoTranssmition
 
@@ -271,7 +271,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			prf.TypeAreaNetwork = mc.TypeAreaNetwork
 			prf.AccessClientsConfigure = acc
 
-			go processingWebsocketRequest.RequestTypeFilter(&prf, messageTypeFilter, ift)
+			go processingWebsocketRequest.RequestTypeFilter(&prf, &messageTypeFilter, ift)
 
 		case "download files":
 			fmt.Println("routing to DOWNLOAD FILES...")
