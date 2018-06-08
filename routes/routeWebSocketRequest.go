@@ -271,7 +271,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			prf.TypeAreaNetwork = mc.TypeAreaNetwork
 			prf.AccessClientsConfigure = acc
 
-			go processingWebsocketRequest.RequestTypeFilter(&prf, &messageTypeFilter, ift)
+			processingWebsocketRequest.RequestTypeFilter(&prf, messageTypeFilter, ift)
 
 		case "download files":
 			fmt.Println("routing to DOWNLOAD FILES...")

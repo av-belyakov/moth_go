@@ -65,9 +65,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 		}
 
 		fmt.Println("START FILTERING FOR INDEXES *****************")
-
-		//return
 	}
 
-	go RequestTypeFilter(prf, mtf, ift)
+	go ProcessingFiltering(prf, &mtf, ift)
 }

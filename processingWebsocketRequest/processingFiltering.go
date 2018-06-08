@@ -727,15 +727,15 @@ func requestFilteringStop(prf *configure.ParametrsFunctionRequestFilter, mtf *co
 }
 
 //ProcessingFiltering обрабатывает запросы связанные с фильтрацией
-func ProcessingFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
-	fmt.Println("\nFILTERING: function RequestTypeFilter STARTING...")
+func ProcessingFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
+	fmt.Println("\nFILTERING: function ProcessingFiltering STARTING...")
 	//fmt.Println(mtf)
 	//fmt.Println("___________________________________________________________")
 
-	/*switch mtf.Info.Processing {
+	switch mtf.Info.Processing {
 	case "on":
 		requestFilteringStart(prf, mtf, ift)
 	case "off":
 		requestFilteringStop(prf, mtf, ift)
-	}*/
+	}
 }

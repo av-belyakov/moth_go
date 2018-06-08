@@ -35,6 +35,7 @@ type TaskInformation struct {
 	CountFoundFilesSize     int64
 	ListFilesFilter
 	TotalNumberFilesFilter int
+	NumberPleasantMessages int
 	TypeProcessing         string
 	IsProcessStop          bool
 }
