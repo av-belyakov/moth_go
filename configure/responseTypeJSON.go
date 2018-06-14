@@ -2,7 +2,7 @@ package configure
 
 /*
 * Описания структур принимаемых JSON сообщений
-* Версия 0.1, дата релиза 19.03.2018
+* Версия 0.11, дата релиза 13.06.2018
 * */
 
 //FilterInfoPattern является шаблоном типа Info
@@ -28,6 +28,11 @@ type InfoProcessingFile struct {
 	StatusProcessed   bool   `json:"statusProcessed"`
 }
 
+//MessageTypeFilteringStopInfo сообщение при ОСТАНОВ выполнения фильтрации
+type MessageTypeFilteringStopInfo struct {
+	FilterInfoPattern
+}
+
 //MessageTypeFilteringCompleteInfo детальная информация при ЗАВЕРШЕНИИ выполнения фильтрации
 type MessageTypeFilteringCompleteInfo struct {
 	FilterInfoPattern
@@ -37,7 +42,6 @@ type MessageTypeFilteringCompleteInfo struct {
 //MessageTypeFilteringStartInfoFirstPart детальная информаци, первый фрагмент (без имен файлов)
 type MessageTypeFilteringStartInfoFirstPart struct {
 	FilterInfoPattern
-	FilterCountPattern
 	DirectoryFiltering      string         `json:"directoryFiltering"`
 	CountDirectoryFiltering int            `json:"countDirectoryFiltering"`
 	CountFullCycle          int            `json:"countFullCycle"`
@@ -77,8 +81,8 @@ type MessageTypeFilteringStartSecondPart struct {
 
 //MessageTypeFilteringStop отправляется для подтверждения остановки фильтрации
 type MessageTypeFilteringStop struct {
-	MessageType string                           `json:"messageType"`
-	Info        MessageTypeFilteringCompleteInfo `json:"info"`
+	MessageType string                       `json:"messageType"`
+	Info        MessageTypeFilteringStopInfo `json:"info"`
 }
 
 //MessageTypeFilteringComplete отправляется при завершении фильтрации

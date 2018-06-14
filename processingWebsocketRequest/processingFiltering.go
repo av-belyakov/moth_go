@@ -128,7 +128,9 @@ func getListFilesForFiltering(prf *configure.ParametrsFunctionRequestFilter, mft
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(resultFoundFile.ErrMsg))
 		}
 
-		currentTask.ListFilesFilter[resultFoundFile.Path] = resultFoundFile.Files
+		if resultFoundFile.Files != nil {
+			currentTask.ListFilesFilter[resultFoundFile.Path] = resultFoundFile.Files
+		}
 
 		fullCountFiles += resultFoundFile.CountFiles
 		fullSizeFiles += resultFoundFile.SizeFiles
@@ -282,28 +284,16 @@ func requestFilteringStart(prf *configure.ParametrsFunctionRequestFilter, mft *c
 		fmt.Println("\nSTART filter not INDEX 1111")
 
 		executeFiltering(prf, mft, ift)
-	}
+	} else {
+		if mft.Info.Settings.CountPartsIndexFiles[0] > 0 {
 
-	/*if mft.Info.Settings.CountPartsIndexFiles[0] == mft.Info.Settings.CountPartsIndexFiles[1] {
-		fmt.Println("\nSTART FILTER WITH Index 3333")
+			fmt.Println("\nADD INDEX FILES IN ListFiles 2222")
 
-		executeFiltering(prf, mft, ift)
-	}*/
+			if mft.Info.Settings.CountPartsIndexFiles[0] == mft.Info.Settings.CountPartsIndexFiles[1] {
+				fmt.Println("\nSTART FILTER WITH Index 3333")
 
-	if mft.Info.Settings.CountPartsIndexFiles[0] > 0 {
-
-		fmt.Println("\nADD INDEX FILES IN ListFiles 2222")
-
-		/*		listFilesFilter := ift.TaskID[mft.Info.TaskIndex].ListFilesFilter
-
-				for dir, listName := range mft.Info.Settings.ListFilesFilter {
-					listFilesFilter[dir] = append(listFilesFilter[dir], listName...)
-				}
-		*/
-		if mft.Info.Settings.CountPartsIndexFiles[0] == mft.Info.Settings.CountPartsIndexFiles[1] {
-			fmt.Println("\nSTART FILTER WITH Index 3333")
-
-			executeFiltering(prf, mft, ift)
+				executeFiltering(prf, mft, ift)
+			}
 		}
 	}
 }
@@ -459,12 +449,8 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 	infoTaskFilter := *ift.TaskID[taskIndex]
 	//количество директорий для фильтрации
 	infoTaskFilter.CountDirectoryFiltering = ift.GetCountDirectoryFiltering(taskIndex)
-	//общее количество фильтруемых файлов
-	//infoTaskFilter.CountFilesFiltering = fullCountFiles
 	//количество полных циклов
 	infoTaskFilter.CountFullCycle = infoTaskFilter.CountFilesFiltering
-	//общий размер фильтруемых файлов
-	//infoTaskFilter.CountMaxFilesSize = fullSizeFiles
 
 	listCountFilesFilter := make(map[string]int)
 
@@ -485,13 +471,6 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 					Processing: "start",
 					TaskIndex:  taskIndex,
 					IPAddress:  prf.ExternalIP,
-				},
-				FilterCountPattern: configure.FilterCountPattern{
-					CountCycleComplete:    infoTaskFilter.CountCycleComplete,
-					CountFilesFound:       infoTaskFilter.CountFilesFound,
-					CountFoundFilesSize:   infoTaskFilter.CountFoundFilesSize,
-					CountFilesProcessed:   infoTaskFilter.CountFilesProcessed,
-					CountFilesUnprocessed: infoTaskFilter.CountFilesUnprocessed,
 				},
 				DirectoryFiltering:      infoTaskFilter.DirectoryFiltering,
 				CountDirectoryFiltering: infoTaskFilter.CountDirectoryFiltering,

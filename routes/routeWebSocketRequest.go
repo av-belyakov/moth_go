@@ -103,7 +103,37 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 
 //processMsgFilterComingChannel обрабатывает иформацию о фильтрации получаемую из канала
 func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
-	sendStopOrCompleteMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
+	sendStopMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
+		MessageTypeFilteringStop := configure.MessageTypeFilteringStop{
+			MessageType: "filtering",
+			Info: configure.MessageTypeFilteringStopInfo{
+				configure.FilterInfoPattern{
+					Processing: task.TypeProcessing,
+					TaskIndex:  taskIndex,
+					IPAddress:  task.RemoteIP,
+				},
+			},
+		}
+
+		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
+		fmt.Println(MessageTypeFilteringStop)
+
+		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex)
+
+		formatJSON, err := json.Marshal(&MessageTypeFilteringStop)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if _, ok := acc.Addresses[task.RemoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
+		}
+
+		delete(ift.TaskID, taskIndex)
+		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
+	}
+
+	sendCompleteMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
 		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
 			MessageType: "filtering",
 			Info: configure.MessageTypeFilteringCompleteInfo{
@@ -124,6 +154,8 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 
 		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
 		fmt.Println(messageTypeFilteringComplete)
+
+		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex)
 
 		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
 		if err != nil {
@@ -159,6 +191,8 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						continue
 					}
 
+					fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", msgInfoFilterTask.TaskIndex)
+
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
 						MessageType: "filtering",
 						Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
@@ -191,9 +225,9 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
-					sendStopOrCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
+					sendCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
 				case "stop":
-					sendStopOrCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
+					sendStopMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
 				}
 			}
 		}
@@ -222,6 +256,8 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 		if err = json.Unmarshal(message, &messageType); err != nil {
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
+
+		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "******************")
 
 		switch messageType.Type {
 		case "ping":
@@ -258,11 +294,13 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			go processMsgFilterComingChannel(acc, ift)
 
 		case "filtering":
-			fmt.Println("routing to FILTERING...")
+			fmt.Println("*******-------- routing to FILTERING...")
 
 			if err = json.Unmarshal(message, &messageTypeFilter); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
+
+			fmt.Println("-----------------------------", messageTypeFilter, "-----------------------------")
 
 			prf.RemoteIP = remoteIP
 			prf.ExternalIP = mc.ExternalIPAddress

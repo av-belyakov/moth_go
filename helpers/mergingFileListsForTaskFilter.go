@@ -12,9 +12,9 @@ MergingFileListForTaskFilter выполняет объединение прис�
 файлов необходимых для выполнения фильтрации (данной действие выполняется для индексных списков
 или при возобновлении задачи по фильтрации)
 */
-func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *configure.MessageTypeFilter) (error, bool) {
+func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *configure.MessageTypeFilter) (bool, error) {
 	if !mtf.Info.Settings.UseIndexes {
-		return errors.New("task filtering not index"), true
+		return true, errors.New("task filtering not index")
 	}
 
 	fmt.Println("START function MergingFileListForTaskFilter")
@@ -35,7 +35,7 @@ func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *
 		fmt.Println("!!!!!! FERST ELEMENT")
 		fmt.Println(ift.TaskID[mtf.Info.TaskIndex].TotalNumberFilesFilter)
 
-		return nil, false
+		return false, nil
 	}
 
 	var countFiles, fullCountFiles int
@@ -65,12 +65,12 @@ func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *
 			fmt.Println("+===+ FOLDER ", folder, " count files = ", len(value))
 		}
 
-		return nil, true
+		return true, nil
 	}
 
 	//ift.TaskID[mtf.Info.TaskIndex].NumberPleasantMessages++
 
-	return nil, false
+	return false, nil
 }
 
 //MergingFilesListForTaskFilter выполняет объединение присылаемых клиентом списков
