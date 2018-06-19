@@ -158,7 +158,14 @@ func (sysInfo *SysInfo) CreateLoadCPU() error {
 		return err
 	}
 
-	infoCPU, err := strconv.ParseFloat(string(stdout[:len(stdout)-4]), 64)
+	var strCPU []byte
+	if len(stdout) < 4 {
+		strCPU = stdout
+	} else {
+		strCPU = stdout[:len(stdout)-4]
+	}
+
+	infoCPU, err := strconv.ParseFloat(string(strCPU), 64)
 	if err != nil {
 		return err
 	}

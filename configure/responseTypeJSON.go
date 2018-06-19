@@ -33,10 +33,18 @@ type MessageTypeFilteringStopInfo struct {
 	FilterInfoPattern
 }
 
-//MessageTypeFilteringCompleteInfo детальная информация при ЗАВЕРШЕНИИ выполнения фильтрации
-type MessageTypeFilteringCompleteInfo struct {
+//MessageTypeFilteringCompleteInfoFirstPart детальная информация при ЗАВЕРШЕНИИ выполнения фильтрации (первая часть)
+type MessageTypeFilteringCompleteInfoFirstPart struct {
 	FilterInfoPattern
 	FilterCountPattern
+	NumberMessageParts [2]int `json:"numberMessageParts"`
+}
+
+//MessageTypeFilteringCompleteInfoSecondPart информация при ЗАВЕРШЕНИИ выполнения фильтрации (вторая часть)
+type MessageTypeFilteringCompleteInfoSecondPart struct {
+	FilterInfoPattern
+	NumberMessageParts            [2]int   `json:"numberMessageParts"`
+	ListFilesFoundDuringFiltering []string `json:"listFilesFoundDuringFiltering"`
 }
 
 //MessageTypeFilteringStartInfoFirstPart детальная информаци, первый фрагмент (без имен файлов)
@@ -85,10 +93,16 @@ type MessageTypeFilteringStop struct {
 	Info        MessageTypeFilteringStopInfo `json:"info"`
 }
 
-//MessageTypeFilteringComplete отправляется при завершении фильтрации
-type MessageTypeFilteringComplete struct {
-	MessageType string                           `json:"messageType"`
-	Info        MessageTypeFilteringCompleteInfo `json:"info"`
+//MessageTypeFilteringCompleteFirstPart отправляется при завершении фильтрации
+type MessageTypeFilteringCompleteFirstPart struct {
+	MessageType string                                    `json:"messageType"`
+	Info        MessageTypeFilteringCompleteInfoFirstPart `json:"info"`
+}
+
+//MessageTypeFilteringCompleteSecondPart отправляется при завершении фильтрации
+type MessageTypeFilteringCompleteSecondPart struct {
+	MessageType string                                     `json:"messageType"`
+	Info        MessageTypeFilteringCompleteInfoSecondPart `json:"info"`
 }
 
 //MessageTypeFilteringExecutedOrUnexecuted при выполнении или не выполнении фильтрации

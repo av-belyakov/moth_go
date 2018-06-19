@@ -3,8 +3,11 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math"
 
 	"moth_go/configure"
+	"moth_go/helpers"
 	"moth_go/processingWebsocketRequest"
 	"moth_go/saveMessageApp"
 )
@@ -17,6 +20,165 @@ type MessageType struct {
 var messageType MessageType
 var messageTypePing processingWebsocketRequest.MessageTypePing
 var messageTypeFilter configure.MessageTypeFilter
+
+func sendCompleteMsg(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, taskIndex string, task *configure.TaskInformation) {
+	const sizeChunk = 30
+	var messageTypeFilteringCompleteFirstPart configure.MessageTypeFilteringCompleteFirstPart
+
+	//получить список найденных, в результате фильтрации, файлов
+	getListFoundFiles := func(directoryResultFilter string) (list []string, err error) {
+		files, err := ioutil.ReadDir(directoryResultFilter)
+		if err != nil {
+			return list, err
+		}
+
+		for _, file := range files {
+			if (file.Name() != "readme.txt") && (file.Size() > 24) {
+				list = append(list, file.Name())
+			}
+		}
+
+		return list, nil
+	}
+
+	//получить количество частей сообщений
+	getCountPartsMessage := func(list []string, sizeChunk int) int {
+		maxFiles := float64(len(list))
+
+		newCountChunk := float64(sizeChunk)
+		x := math.Floor(maxFiles / newCountChunk)
+		y := maxFiles / newCountChunk
+
+		if (y - x) != 0 {
+			x++
+		}
+
+		return int(x)
+	}
+
+	listFoundFiles, err := getListFoundFiles(task.DirectoryFiltering)
+	if err != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
+
+	messageTypeFilteringCompleteFirstPart = configure.MessageTypeFilteringCompleteFirstPart{
+		MessageType: "filtering",
+		Info: configure.MessageTypeFilteringCompleteInfoFirstPart{
+			FilterInfoPattern: configure.FilterInfoPattern{
+				Processing: task.TypeProcessing,
+				TaskIndex:  taskIndex,
+				IPAddress:  task.RemoteIP,
+			},
+			FilterCountPattern: configure.FilterCountPattern{
+				CountFilesFound:       task.CountFilesFound,
+				CountCycleComplete:    task.CountCycleComplete,
+				CountFoundFilesSize:   task.CountFoundFilesSize,
+				CountFilesProcessed:   task.CountFilesProcessed,
+				CountFilesUnprocessed: task.CountFilesUnprocessed,
+			},
+		},
+	}
+
+	if len(listFoundFiles) == 0 {
+
+		fmt.Println("--------------------- FILTERING COMPLETE (FILES NOT FOUND) -------------------")
+		fmt.Println(messageTypeFilteringCompleteFirstPart)
+
+		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex, "count files found:", task.CountFilesFound)
+
+		formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if _, ok := acc.Addresses[task.RemoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
+		}
+	} else {
+		//получить кусочек среза со списком файлов
+		/*getListFilesFoundDuringFiltering := func(numPart, countParts int) []string {
+			listFilesFilter := []string{}
+
+			if numPart == 1 {
+				if len(listFoundFiles) < sizeChunk {
+					listFilesFilter = listFoundFiles[:]
+				} else {
+					listFilesFilter = listFoundFiles[:sizeChunk]
+				}
+			} else {
+				num := sizeChunk * (numPart - 1)
+				numEnd := num + sizeChunk
+
+				if (numPart == countParts) && (num < len(listFoundFiles)) {
+					listFilesFilter = listFoundFiles[num:]
+				}
+				if (numPart < countParts) && (numEnd < len(listFoundFiles)) {
+					listFilesFilter = listFoundFiles[num:numEnd]
+				}
+
+			}
+
+			return listFilesFilter
+		}*/
+
+		countPartsMessage := getCountPartsMessage(listFoundFiles, sizeChunk)
+
+		numberMessageParts := [2]int{0, countPartsMessage}
+		messageTypeFilteringCompleteFirstPart.Info.NumberMessageParts = numberMessageParts
+
+		//отправляется первая часть сообщения
+		formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if _, ok := acc.Addresses[task.RemoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
+		}
+
+		//шаблон последующих частей сообщения
+		var messageTypeFilteringCompleteSecondPart configure.MessageTypeFilteringCompleteSecondPart
+		messageTypeFilteringCompleteSecondPart = configure.MessageTypeFilteringCompleteSecondPart{
+			MessageType: "filtering",
+			Info: configure.MessageTypeFilteringCompleteInfoSecondPart{
+				FilterInfoPattern: configure.FilterInfoPattern{
+					Processing: task.TypeProcessing,
+					TaskIndex:  taskIndex,
+					IPAddress:  task.RemoteIP,
+				},
+			},
+		}
+
+		//отправляются последующие части сообщений содержащие списки имен файлов
+		for i := 1; i <= countPartsMessage; i++ {
+			//получаем срез с частью имен файлов
+			//			listFilesFoundDuringFiltering := getListFilesFoundDuringFiltering(i, countPartsMessage)
+
+			listFilesFoundDuringFiltering := helpers.GetChunkListFilesFoundDuringFiltering(configure.ChunkListParameters{
+				NumPart:        i,
+				CountParts:     countPartsMessage,
+				SizeChunk:      sizeChunk,
+				ListFoundFiles: listFoundFiles,
+			})
+
+			numberMessageParts[0] = i
+			messageTypeFilteringCompleteSecondPart.Info.NumberMessageParts = numberMessageParts
+			messageTypeFilteringCompleteSecondPart.Info.ListFilesFoundDuringFiltering = listFilesFoundDuringFiltering
+
+			formatJSON, err := json.Marshal(&messageTypeFilteringCompleteSecondPart)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if _, ok := acc.Addresses[task.RemoteIP]; ok {
+				acc.ChanWebsocketTranssmition <- formatJSON
+			}
+		}
+	}
+
+	delete(ift.TaskID, taskIndex)
+	_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
+}
 
 //sendFilterTaskInfo отправляет сообщение о выполняемой или выполненной задаче по фильтрации сет. трафика
 func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
@@ -67,7 +229,9 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
-					mtfc := configure.MessageTypeFilteringComplete{
+					sendCompleteMsg(acc, ift, taskIndex, task)
+
+					/*mtfc := configure.MessageTypeFilteringComplete{
 						MessageType: "filtering",
 						Info: configure.MessageTypeFilteringCompleteInfo{
 							FilterInfoPattern: configure.FilterInfoPattern{
@@ -94,7 +258,7 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 
-					delete(ift.TaskID, taskIndex)
+					delete(ift.TaskID, taskIndex)*/
 				}
 			}
 		}
@@ -118,7 +282,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
 		fmt.Println(MessageTypeFilteringStop)
 
-		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex)
+		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex, "count files found:", task.CountFilesFound)
 
 		formatJSON, err := json.Marshal(&MessageTypeFilteringStop)
 		if err != nil {
@@ -133,10 +297,50 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
 	}
 
-	sendCompleteMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
-		messageTypeFilteringComplete := configure.MessageTypeFilteringComplete{
+	/*sendCompleteMsg := func(taskIndex string, task *configure.TaskInformation) {
+		var messageTypeFilteringCompleteFirstPart configure.MessageTypeFilteringCompleteFirstPart
+
+		const sizeChunk = 30
+
+		//получить список найденных, в результате фильтрации, файлов
+		getListFoundFiles := func(directoryResultFilter string) (list []string, err error) {
+			files, err := ioutil.ReadDir(directoryResultFilter)
+			if err != nil {
+				return list, err
+			}
+
+			for _, file := range files {
+				if (file.Name() != "readme.txt") && (file.Size() > 24) {
+					list = append(list, file.Name())
+				}
+			}
+
+			return list, nil
+		}
+
+		//получить количество частей сообщений
+		getCountPartsMessage := func(list []string, sizeChunk int) int {
+			maxFiles := float64(len(list))
+
+			newCountChunk := float64(sizeChunk)
+			x := math.Floor(maxFiles / newCountChunk)
+			y := maxFiles / newCountChunk
+
+			if (y - x) != 0 {
+				x++
+			}
+
+			return int(x)
+		}
+
+		listFoundFiles, err := getListFoundFiles(task.DirectoryFiltering)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		messageTypeFilteringCompleteFirstPart = configure.MessageTypeFilteringCompleteFirstPart{
 			MessageType: "filtering",
-			Info: configure.MessageTypeFilteringCompleteInfo{
+			Info: configure.MessageTypeFilteringCompleteInfoFirstPart{
 				FilterInfoPattern: configure.FilterInfoPattern{
 					Processing: task.TypeProcessing,
 					TaskIndex:  taskIndex,
@@ -152,23 +356,99 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			},
 		}
 
-		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
-		fmt.Println(messageTypeFilteringComplete)
+		if len(listFoundFiles) == 0 {
 
-		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex)
+			fmt.Println("--------------------- FILTERING COMPLETE (FILES NOT FOUND) -------------------")
+			fmt.Println(messageTypeFilteringCompleteFirstPart)
 
-		formatJSON, err := json.Marshal(&messageTypeFilteringComplete)
-		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-		}
+			fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex)
 
-		if _, ok := acc.Addresses[task.RemoteIP]; ok {
-			acc.ChanWebsocketTranssmition <- formatJSON
+			formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if _, ok := acc.Addresses[task.RemoteIP]; ok {
+				acc.ChanWebsocketTranssmition <- formatJSON
+			}
+		} else {
+			//получить кусочек среза со списком файлов
+			getListFilesFoundDuringFiltering := func(numPart, countParts int) []string {
+				listFilesFilter := []string{}
+
+				if numPart == 1 {
+					if len(listFoundFiles) < sizeChunk {
+						listFilesFilter = listFoundFiles[:]
+					} else {
+						listFilesFilter = listFoundFiles[:sizeChunk]
+					}
+				} else {
+					num := sizeChunk * (numPart - 1)
+					numEnd := num + sizeChunk
+
+					if (numPart == countParts) && (num < len(listFoundFiles)) {
+						listFilesFilter = listFoundFiles[num:]
+					}
+					if (numPart < countParts) && (numEnd < len(listFoundFiles)) {
+						listFilesFilter = listFoundFiles[num:numEnd]
+					}
+
+				}
+
+				return listFilesFilter
+			}
+
+			countPartsMessage := getCountPartsMessage(listFoundFiles, sizeChunk)
+
+			numberMessageParts := [2]int{0, countPartsMessage}
+			messageTypeFilteringCompleteFirstPart.Info.NumberMessageParts = numberMessageParts
+
+			//отправляется первая часть сообщения
+			formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
+			if err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			if _, ok := acc.Addresses[task.RemoteIP]; ok {
+				acc.ChanWebsocketTranssmition <- formatJSON
+			}
+
+			//последующие части сообщений
+			var messageTypeFilteringCompleteSecondPart configure.MessageTypeFilteringCompleteSecondPart
+			messageTypeFilteringCompleteSecondPart = configure.MessageTypeFilteringCompleteSecondPart{
+				MessageType: "filtering",
+				Info: configure.MessageTypeFilteringCompleteInfoSecondPart{
+					FilterInfoPattern: configure.FilterInfoPattern{
+						Processing: task.TypeProcessing,
+						TaskIndex:  taskIndex,
+						IPAddress:  task.RemoteIP,
+					},
+				},
+			}
+
+			//отправляются последующие части сообщений содержащие списки имен файлов
+			for i := 1; i <= countPartsMessage; i++ {
+				//получаем срез с частью имен файлов
+				listFilesFoundDuringFiltering := getListFilesFoundDuringFiltering(i, countPartsMessage)
+
+				numberMessageParts[0] = i
+				messageTypeFilteringCompleteSecondPart.Info.NumberMessageParts = numberMessageParts
+				messageTypeFilteringCompleteSecondPart.Info.ListFilesFoundDuringFiltering = listFilesFoundDuringFiltering
+
+				formatJSON, err := json.Marshal(&messageTypeFilteringCompleteSecondPart)
+				if err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				if _, ok := acc.Addresses[task.RemoteIP]; ok {
+					acc.ChanWebsocketTranssmition <- formatJSON
+				}
+			}
 		}
 
 		delete(ift.TaskID, taskIndex)
 		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
-	}
+	}*/
 
 	for {
 		msgInfoFilterTask := <-acc.ChanInfoFilterTask
@@ -190,8 +470,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 					if (task.TypeProcessing == "stop") || (task.TypeProcessing == "complete") {
 						continue
 					}
-
-					fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", msgInfoFilterTask.TaskIndex)
+					fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", msgInfoFilterTask.TaskIndex, "count files found:", task.CountFilesFound)
 
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
 						MessageType: "filtering",
@@ -225,7 +504,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
-					sendCompleteMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
+					sendCompleteMsg(acc, ift, msgInfoFilterTask.TaskIndex, task)
 				case "stop":
 					sendStopMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
 				}
