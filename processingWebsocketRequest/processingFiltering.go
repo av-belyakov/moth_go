@@ -172,25 +172,28 @@ func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTyp
 	}
 
 	getIPAddressString := func(ipaddreses []string) (searchHosts string) {
-		num := 0
 		if len(ipaddreses) != 0 {
 			if len(ipaddreses) == 1 {
-				searchHosts += " (host " + ipaddreses[0] + " || (vlan && host " + ipaddreses[0] + "))"
+				searchHosts = "'(host " + ipaddreses[0] + " || (vlan && host " + ipaddreses[0] + "))'"
 			} else {
-				for _, ip := range ipaddreses {
-					searchHosts += " (host " + ip + " || (vlan && host " + ip + "))"
-					if num < (len(ipaddreses) - 1) {
-						searchHosts += " ||"
+				var hosts string
+				for key, ip := range ipaddreses {
+					if key == 0 {
+						hosts += "(host " + ip
+					} else if key == (len(ipaddreses) - 1) {
+						hosts += " || " + ip + ")"
+					} else {
+						hosts += " || " + ip
 					}
-					num++
 				}
+
+				searchHosts = "'" + hosts + " || (vlan && " + hosts + ")'"
 			}
 		}
 		return searchHosts
 	}
 
 	getNetworksString := func(networks []string) (searchNetworks string) {
-		num := 0
 		if len(networks) != 0 {
 			if len(networks) == 1 {
 				networkPattern, err := getPatternNetwork(networks[0])
@@ -198,20 +201,24 @@ func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTyp
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
-				searchNetworks += " (net " + networkPattern + " || (vlan && net " + networkPattern + "))"
+				searchNetworks += "'(net " + networkPattern + " || (vlan && net " + networkPattern + "))'"
 			} else {
-				for _, net := range networks {
+				var network string
+				for key, net := range networks {
 					networkPattern, err := getPatternNetwork(net)
 					if err != nil {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
-					searchNetworks += " (net " + networkPattern + " || (vlan && net " + networkPattern + "))"
-					if num < (len(networks) - 1) {
-						searchNetworks += " ||"
+					if key == 0 {
+						network += "(net " + networkPattern
+					} else if key == (len(networks) - 1) {
+						network += " || " + networkPattern + ")"
+					} else {
+						network += " || " + networkPattern
 					}
-					num++
 				}
+				searchNetworks = "'" + network + " || (vlan && " + network + ")'"
 			}
 		}
 		return searchNetworks
@@ -227,16 +234,16 @@ func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTyp
 	searchNetwork := getNetworksString(mtf.Info.Settings.Network)
 
 	if len(mtf.Info.Settings.IPAddress) > 0 && len(mtf.Info.Settings.Network) > 0 {
-		bind = " || "
+		bind = " or "
 	}
 
 	listTypeArea := map[int]string{
-		1: "",
+		1: " ",
 		2: " '(pppoes && ip)' and ",
 	}
 
 	pattern := " tcpdump -r " + ppf.DirectoryName + "/$files"
-	pattern += listTypeArea[ppf.TypeAreaNetwork] + " '" + searchHosts + bind + searchNetwork + "'"
+	pattern += listTypeArea[ppf.TypeAreaNetwork] + searchHosts + bind + searchNetwork
 	pattern += " -w " + ppf.PathStorageFilterFiles + "/$files;"
 
 	return pattern
@@ -646,10 +653,10 @@ func filterProcessing(done chan<- ChanDone, ppf PatternParametersFiltering, patt
 		if _, ok := ift.TaskID[ppf.TaskIndex]; !ok {
 			return
 		}
-
-		ift.TaskID[ppf.TaskIndex].CountCycleComplete++
-		ift.TaskID[ppf.TaskIndex].CountFilesProcessed++
-
+		/*
+			ift.TaskID[ppf.TaskIndex].CountCycleComplete++
+			ift.TaskID[ppf.TaskIndex].CountFilesProcessed++
+		*/
 		if !statusProcessedFile {
 			ift.TaskID[ppf.TaskIndex].CountFilesUnprocessed++
 		}

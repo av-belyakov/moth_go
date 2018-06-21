@@ -43,8 +43,8 @@ type MessageTypeFilteringCompleteInfoFirstPart struct {
 //MessageTypeFilteringCompleteInfoSecondPart информация при ЗАВЕРШЕНИИ выполнения фильтрации (вторая часть)
 type MessageTypeFilteringCompleteInfoSecondPart struct {
 	FilterInfoPattern
-	NumberMessageParts            [2]int   `json:"numberMessageParts"`
-	ListFilesFoundDuringFiltering []string `json:"listFilesFoundDuringFiltering"`
+	NumberMessageParts            [2]int           `json:"numberMessageParts"`
+	ListFilesFoundDuringFiltering []FoundFilesInfo `json:"listFilesFoundDuringFiltering"`
 }
 
 //MessageTypeFilteringStartInfoFirstPart детальная информаци, первый фрагмент (без имен файлов)

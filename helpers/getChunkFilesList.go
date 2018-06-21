@@ -3,8 +3,8 @@ package helpers
 import "moth_go/configure"
 
 //GetChunkListFilesFoundDuringFiltering делит срез имен файлов на отдельные части
-func GetChunkListFilesFoundDuringFiltering(clp configure.ChunkListParameters) []string {
-	listFilesFilter := []string{}
+func GetChunkListFilesFoundDuringFiltering(clp configure.ChunkListParameters) []configure.FoundFilesInfo {
+	listFilesFilter := []configure.FoundFilesInfo{}
 
 	if clp.NumPart == 1 {
 		if len(clp.ListFoundFiles) < clp.SizeChunk {
