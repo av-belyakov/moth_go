@@ -12,6 +12,7 @@ type MessageTypeSetting struct {
 	IPAddress              []string            `json:"ipaddress"`
 	Network                []string            `json:"network"`
 	UseIndexes             bool                `json:"useIndexes"`
+	CountFilesFiltering    int                 `json:"countFilesFiltering"`
 	TotalNumberFilesFilter int                 `json:"totalNumberFilesFilter"`
 	CountPartsIndexFiles   [2]int              `json:"countPartsIndexFiles"`
 	ListFilesFilter        map[string][]string `json:"listFilesFilter"`

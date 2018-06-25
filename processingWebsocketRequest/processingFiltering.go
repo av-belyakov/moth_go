@@ -579,6 +579,13 @@ func executeFiltering(prf *configure.ParametrsFunctionRequestFilter, mtf *config
 
 	listFilesFilter := ift.TaskID[taskIndex].ListFilesFilter
 
+	//ставим количество обработанных файлов
+	ift.TaskID[taskIndex].CountFilesProcessed = mtf.Info.Settings.CountFilesFiltering - mtf.Info.Settings.TotalNumberFilesFilter
+
+	fmt.Println("-------------------------------------")
+	fmt.Println("COUNT FILES pROCESSED = ", ift.TaskID[taskIndex].CountFilesProcessed)
+	fmt.Println("*************************************")
+
 	done := make(chan ChanDone, infoTaskFilter.CountDirectoryFiltering)
 
 	for dir := range listFilesFilter {

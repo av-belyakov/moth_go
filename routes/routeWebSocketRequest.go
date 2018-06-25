@@ -261,6 +261,9 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			task.ProcessingFileName = msgInfoFilterTask.ProcessingFileName
 			task.StatusProcessedFile = msgInfoFilterTask.StatusProcessedFile
 
+			task.CountFilesProcessed++
+			task.CountCycleComplete++
+
 			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
 
 				switch msgInfoFilterTask.TypeProcessing {
@@ -292,9 +295,6 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 							},
 						},
 					}
-
-					task.CountFilesProcessed++
-					task.CountCycleComplete++
 
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
