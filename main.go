@@ -187,7 +187,14 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 	go func(acc *configure.AccessClientsConfigure) {
 		for {
-			select {
+			message := <-acc.ChanWebsocketTranssmition
+			if _, isExist := acc.Addresses[remoteIP]; isExist {
+				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+			}
+
+			/*select {
 			case message := <-acc.ChanWebsocketTranssmition:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
 					if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
@@ -195,7 +202,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 					}
 				}
 			default:
-			}
+			}*/
 		}
 	}(&acc)
 
