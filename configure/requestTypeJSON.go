@@ -2,7 +2,7 @@ package configure
 
 /*
 * Описания структур принимаемых JSON сообщений
-* Версия 0.1, дата релиза 22.02.2018
+* Версия 0.2, дата релиза 16.07.2018
 * */
 
 //MessageTypeSetting содержит детальную информацию о фильтрации
@@ -25,7 +25,23 @@ type MessageTypeFilterInfo struct {
 	Settings   MessageTypeSetting `json:"settings"`
 }
 
-//MessageTypeFilter содержит всю информацию
+//MessageTypeFilter содержит всю информацию о выполянемой фильтрации
 type MessageTypeFilter struct {
 	Info MessageTypeFilterInfo `json:"info"`
+}
+
+//MessageTypeDownloadFilesInfo содержит подробную информацию о запросе на скачивание файлов
+type MessageTypeDownloadFilesInfo struct {
+	Processing                 string   `json:"processing"`
+	TasKIndex                  string   `json:"taskIndex"`
+	DownloadDirectoryFiles     string   `json:"downloadDirectoryFiles"`
+	DownloadSelectedFiles      bool     `json:"downloadSelectedFiles"`
+	CountDownloadSelectedFiles int      `json:"countDownloadSelectedFiles"`
+	NumberMessageParts         [2]int   `json:"numberMessageParts"`
+	ListDownloadSelectedFiles  []string `json:"listDownloadSelectedFiles"`
+}
+
+//MessageTypeDownloadFiles содержит запрос на скачивание файлов
+type MessageTypeDownloadFiles struct {
+	Info MessageTypeDownloadFilesInfo `json:"info"`
 }

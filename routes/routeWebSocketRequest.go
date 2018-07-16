@@ -20,6 +20,7 @@ type MessageType struct {
 var messageType MessageType
 var messageTypePing processingWebsocketRequest.MessageTypePing
 var messageTypeFilter configure.MessageTypeFilter
+var messageTypeDownloadFiles configure.MessageTypeDownloadFiles
 
 //sendCompleteMsg отправляет сообщение о завершении фильтрации
 func sendCompleteMsg(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, taskIndex string, task *configure.TaskInformation) {
@@ -394,6 +395,11 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 		case "download files":
 			fmt.Println("routing to DOWNLOAD FILES...")
 
+			if err = json.Unmarshal(message, &messageTypeDownloadFiles); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			fmt.Println("-----------------------------", messageTypeDownloadFiles, "-----------------------------")
 		}
 	}
 }
