@@ -10,3 +10,11 @@ type ParametrsFunctionRequestFilter struct {
 	TypeAreaNetwork        int
 	ChanStopTaskFilter     chan string
 }
+
+//ParametrsFunctionRequestDownloadFiles параметры для передачи функции обработки выгрузки файлов
+type ParametrsFunctionRequestDownloadFiles struct {
+	RemoteIP               string
+	ExternalIP             string
+	PathStorageFilterFiles string
+	AccessClientsConfigure *AccessClientsConfigure
+}

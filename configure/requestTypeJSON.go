@@ -33,7 +33,7 @@ type MessageTypeFilter struct {
 //MessageTypeDownloadFilesInfo содержит подробную информацию о запросе на скачивание файлов
 type MessageTypeDownloadFilesInfo struct {
 	Processing                 string   `json:"processing"`
-	TasKIndex                  string   `json:"taskIndex"`
+	TaskIndex                  string   `json:"taskIndex"`
 	DownloadDirectoryFiles     string   `json:"downloadDirectoryFiles"`
 	DownloadSelectedFiles      bool     `json:"downloadSelectedFiles"`
 	CountDownloadSelectedFiles int      `json:"countDownloadSelectedFiles"`

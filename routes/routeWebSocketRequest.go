@@ -315,8 +315,17 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 	}
 }
 
+//processMsgDownloadComingChannel обработка информации по выгружаемым файлам полученной через канал ChanInfoDownloadTask
+func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi *configure.DownloadFilesInformation) {
+	for {
+		msgInfoDownloadTask := <-acc.ChanInfoDownloadTask
+
+		fmt.Println("CHANNEL acc.ChanInfoDownloadTask, message...", msgInfoDownloadTask)
+	}
+}
+
 //RouteWebSocketRequest маршрутизирует запросы
-func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, mc *configure.MothConfig) {
+func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask, dfi *configure.DownloadFilesInformation, mc *configure.MothConfig) {
 	c := acc.Addresses[remoteIP].WsConnection
 
 	chanTypePing := make(chan []byte)
@@ -327,6 +336,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 	}()
 
 	var prf configure.ParametrsFunctionRequestFilter
+	var pfrdf confifure.ParametrsFunctionRequestDownloadFiles
 
 	for {
 		_, message, err := c.ReadMessage()
@@ -371,8 +381,11 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				}
 			}()
 
-			//обработка информационных сообщений получаемых через канал ChanInfoFilterTask
+			//обработка информационных сообщений о фильтрации (канал ChanInfoFilterTask)
 			go processMsgFilterComingChannel(acc, ift)
+
+			//обработка информационных сообщений о выгрузке файлов (канал ChanInfoDownloadTask)
+			go processMsgDownloadComingChannel(acc, dfi)
 
 		case "filtering":
 			fmt.Println("*******-------- routing to FILTERING...")
@@ -400,6 +413,13 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			}
 
 			fmt.Println("-----------------------------", messageTypeDownloadFiles, "-----------------------------")
+
+			pfrdf.RemoteIP = remoteIP
+			pfrdf.ExternalIP = mc.ExternalIPAddress
+			pfrdf.PathStorageFilterFiles = mc.PathStorageFilterFiles
+			pfrdf.AccessClientsConfigure = acc
+
+			processingWebsocketRequest.RequestTypeDownloadFiles(pfrdf, messageTypeDownloadFiles, dfi)
 		}
 	}
 }

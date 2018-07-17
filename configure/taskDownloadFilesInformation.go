@@ -2,7 +2,6 @@ package configure
 
 //FileInformationDownloadFiles содержит подробную информацию о передаваемом файле
 type FileInformationDownloadFiles struct {
-	FileName               string
 	FileSize               int64
 	FIleHash               string
 	NumberTransferAttempts int
@@ -10,9 +9,12 @@ type FileInformationDownloadFiles struct {
 
 //TaskInformationDownloadFiles информация о выполняемой задаче
 type TaskInformationDownloadFiles struct {
-	TaskIndex          string
-	DirectoryFiltering string
-	FileInformation    *FileInformationDownloadFiles
+	TaskIndex               string
+	DirectoryFiltering      string
+	TotalCountDownloadFiles int
+	SelectedFiles           bool
+	NumberPleasantMessages  int
+	ListDownloadFiles       map[string]*FileInformationDownloadFiles
 }
 
 //DownloadFilesInformation содержит информацию используемую для передачи файлов

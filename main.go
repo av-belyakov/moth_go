@@ -36,7 +36,11 @@ var mc configure.MothConfig
 var acc configure.AccessClientsConfigure
 var listAccessIPAddress ListAccessIPAddress
 
+//здесь хранится информация о всех задачах по фильтрации
 var ift configure.InformationFilteringTask
+
+//здесь хранится информация о всех задачах по выгрузке сет. трафика
+var dfi configure.DownloadFilesInformation
 
 //ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
 func readMainConfig(fileName string, mc *configure.MothConfig) error {
@@ -206,7 +210,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		}
 	}(&acc)
 
-	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &mc)
+	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc)
 
 	/*
 	   ПЕРЕДОВАЕМЫЙ В РЕЗУЛЬТАТЕ ОКОНЧАНИЯ ФИЛЬТРАЦИИ СПИСОК ФАЙЛОВ

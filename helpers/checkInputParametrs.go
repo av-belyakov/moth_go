@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"io/ioutil"
 	"regexp"
 
 	"moth_go/configure"
@@ -14,9 +15,10 @@ type CheckedFile struct {
 }
 
 var regexpPatterns = map[string]string{
-	"IPAddress": `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$`,
-	"Network":   `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/[0-9]{1,2}$`,
-	"fileName":  `^(\w|_)+\.(tdp|pcap)$`,
+	"IPAddress":                        `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$`,
+	"Network":                          `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/[0-9]{1,2}$`,
+	"fileName":                         `^(\w|_)+\.(tdp|pcap)$`,
+	"pathDirectoryStoryFilesFiltering": `^(\W|_|\/)$`,
 }
 
 func checkDateTime(dts, dte uint64) bool {
@@ -66,6 +68,36 @@ func checkFileName(dirName string, listFiles []string, pattern *regexp.Regexp, d
 	}
 
 	done <- struct{}{}
+}
+
+func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) bool {
+	fmt.Println("function checkPathStorageFilterFiles START...")
+
+	patternCompile, err := regexp.Compile(regexpPatterns["pathDirectoryStoryFilesFiltering"])
+	if err != nil {
+		return false
+	}
+
+	ok := patternCompile.MatchString(mtdf.Info.DownloadDirectoryFiles)
+	if !ok {
+		return false
+	}
+
+	dfi.RemoteIP[remoteIP].DirectoryFiltering = mtdf.Info.DownloadDirectoryFiles
+
+	listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
+	if err != nil {
+		return false
+	}
+
+	for _, files := range listFiles {
+		dfi.RemoteIP[remoteIP].ListDownloadFiles[files.Name()] = &configure.FileInformationDownloadFiles{
+			FileSize:               files.Size(),
+			NumberTransferAttempts: 3,
+		}
+	}
+
+	return true
 }
 
 func awaitCompletion(done <-chan struct{}, countCycle int, answer chan CheckedFile) {
@@ -168,6 +200,19 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 			Network:       listNetwork,
 		},
 		ListFilesFilter: map[string][]string{},
+	}
+
+	return "", true
+}
+
+//InputParametersForDownloadFile выполняется проверка валидности переданных пользователем данных
+func InputParametersForDownloadFile(remoteIP string, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) (string, bool) {
+	//проверка наличия директории с которой выполняется выгрузка файлов
+	if ok := checkPathStorageFilterFiles(remoteIP, mtdf, dfi); !ok {
+		fmt.Println("CHECK PATH DIRECTORY FILTERING ERROR")
+
+		_ = saveMessageApp.LogMessage("error", "task download files: incorrect received downloadDirectoryFiles")
+		return "userDataIncorrect", false
 	}
 
 	return "", true

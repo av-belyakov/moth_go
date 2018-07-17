@@ -32,12 +32,27 @@ type ChanInfoFilterTask struct {
 	StatusProcessedFile bool
 }
 
+//InfoFileDownloadTask информация по передоваемому файлу
+type InfoFileDownloadTask struct {
+	fileName string
+	fileHash string
+	fileSize int64
+}
+
+//ChanInfoDownloadTask описание типа канала предназначенного для отправки информации при выгрузке файлов
+type ChanInfoDownloadTask struct {
+	TaskIndex            string
+	TypeProcessing       string
+	InfoFileDownloadTask InfoFileDownloadTask
+}
+
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
 	Addresses                 map[string]*ClientsConfigure
-	ChanInfoTranssmition      chan []byte             //канал для передачи системной информации
-	ChanInfoFilterTask        chan ChanInfoFilterTask //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
-	ChanWebsocketTranssmition chan []byte             //канал для отправки сообщений по websocket
+	ChanInfoTranssmition      chan []byte               //канал для передачи системной информации
+	ChanInfoFilterTask        chan ChanInfoFilterTask   //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
+	ChanInfoDownloadTask      chan ChanInfoDownloadTask //канал для передачи информации при выгрузке файлов
+	ChanWebsocketTranssmition chan []byte               //канал для отправки сообщений по websocket
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
