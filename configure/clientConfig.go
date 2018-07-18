@@ -43,16 +43,18 @@ type InfoFileDownloadTask struct {
 type ChanInfoDownloadTask struct {
 	TaskIndex            string
 	TypeProcessing       string
+	RemoteIP             string
 	InfoFileDownloadTask InfoFileDownloadTask
 }
 
 //AccessClientsConfigure хранит представления с конфигурациями для клиентов
 type AccessClientsConfigure struct {
-	Addresses                 map[string]*ClientsConfigure
-	ChanInfoTranssmition      chan []byte               //канал для передачи системной информации
-	ChanInfoFilterTask        chan ChanInfoFilterTask   //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
-	ChanInfoDownloadTask      chan ChanInfoDownloadTask //канал для передачи информации при выгрузке файлов
-	ChanWebsocketTranssmition chan []byte               //канал для отправки сообщений по websocket
+	Addresses                    map[string]*ClientsConfigure
+	ChanInfoTranssmition         chan []byte               //канал для передачи системной информации
+	ChanInfoFilterTask           chan ChanInfoFilterTask   //канал для передачи информации о выполняемой задачи по фильтрации сет. трафика
+	ChanInfoDownloadTaskGetMoth  chan ChanInfoDownloadTask //канал для приема информации (выгрузка файлов)
+	ChanInfoDownloadTaskSendMoth chan ChanInfoDownloadTask //канал для передачи информации (выгрузка файлов)
+	ChanWebsocketTranssmition    chan []byte               //канал для отправки сообщений по websocket
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)

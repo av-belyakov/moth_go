@@ -316,11 +316,41 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 }
 
 //processMsgDownloadComingChannel обработка информации по выгружаемым файлам полученной через канал ChanInfoDownloadTask
-func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi *configure.DownloadFilesInformation) {
+func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi *configure.DownloadFilesInformation, remoteIP string) {
 	for {
-		msgInfoDownloadTask := <-acc.ChanInfoDownloadTask
+		msgInfoDownloadTask := <-acc.ChanInfoDownloadTaskSendMoth
 
+		fmt.Println("func processMsgDownloadComingChannel package routeWebSocketRequest")
 		fmt.Println("CHANNEL acc.ChanInfoDownloadTask, message...", msgInfoDownloadTask)
+
+		if _, ok := acc.Addresses[remoteIP]; ok {
+			switch msgInfoDownloadTask.TypeProcessing {
+			case "ready":
+				mtdfrf := configure.MessageTypeDownloadFilesReadyOrFinished{
+					MessageType: "download files",
+					Info: configure.MessageTypeDownloadFilesInfoReadyOrFinished{
+						Processing: msgInfoDownloadTask.TypeProcessing,
+						TaskIndex:  msgInfoDownloadTask.TaskIndex,
+					},
+				}
+
+				formatJSON, err := json.Marshal(&mtdfrf)
+				if err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				if _, ok := acc.Addresses[remoteIP]; ok {
+					acc.ChanWebsocketTranssmition <- formatJSON
+				}
+			case "execute":
+
+			case "execute completed":
+
+			case "finished":
+
+			}
+		}
+
 	}
 }
 
@@ -330,13 +360,14 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 
 	chanTypePing := make(chan []byte)
 	chanTypeInfoFilterTask := make(chan configure.ChanInfoFilterTask, (acc.Addresses[remoteIP].MaxCountProcessFiltering * len(mc.CurrentDisks)))
+
 	defer func() {
 		close(chanTypePing)
 		close(chanTypeInfoFilterTask)
 	}()
 
 	var prf configure.ParametrsFunctionRequestFilter
-	var pfrdf confifure.ParametrsFunctionRequestDownloadFiles
+	var pfrdf configure.ParametrsFunctionRequestDownloadFiles
 
 	for {
 		_, message, err := c.ReadMessage()
@@ -385,7 +416,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			go processMsgFilterComingChannel(acc, ift)
 
 			//обработка информационных сообщений о выгрузке файлов (канал ChanInfoDownloadTask)
-			go processMsgDownloadComingChannel(acc, dfi)
+			go processMsgDownloadComingChannel(acc, dfi, remoteIP)
 
 		case "filtering":
 			fmt.Println("*******-------- routing to FILTERING...")

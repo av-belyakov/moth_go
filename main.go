@@ -180,7 +180,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
 		if _, ok := acc.Addresses[remoteIP]; !ok {
-			fmt.Println(ok, " --- --- ----")
+			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND WEBSOCKET DISCONNECT")
 		}
 		fmt.Println("websocket disconnect!!!")
 	}()
@@ -260,6 +260,10 @@ func init() {
 	acc.ChanInfoTranssmition = make(chan []byte)
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
 	acc.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
+	//иницилизируем канал для приема информации по скачиваемым файлам
+	acc.ChanInfoDownloadTaskGetMoth = make(chan configure.ChanInfoDownloadTask, 5)
+	//иницилизируем канал для передачи информации по скачиваемым файлам
+	acc.ChanInfoDownloadTaskSendMoth = make(chan configure.ChanInfoDownloadTask, 5)
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)

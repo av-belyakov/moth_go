@@ -1,7 +1,7 @@
 package configure
 
 /*
-* Описания структур принимаемых JSON сообщений
+* Описания структур отправляемых JSON сообщений
 * Версия 0.11, дата релиза 13.06.2018
 * */
 
@@ -109,4 +109,30 @@ type MessageTypeFilteringCompleteSecondPart struct {
 type MessageTypeFilteringExecutedOrUnexecuted struct {
 	MessageType string                                     `json:"messageType"`
 	Info        MessageTypeFilteringExecuteOrUnexecuteInfo `json:"info"`
+}
+
+//MessageTypeDownloadFilesInfoExecute содержит информацию передоваемую при сообщениях о передаче информации о файле
+type MessageTypeDownloadFilesInfoExecute struct {
+	MessageTypeDownloadFilesInfoReadyOrFinished
+	FileName string `json:"fileName"`
+	FileSize string `json:"fileSize"`
+	FileHash string `json:"fileHash"`
+}
+
+//MessageTypeDownloadFilesInfoReadyOrFinished содержит информацию передоваемую при сообщениях о готовности или завершении передачи
+type MessageTypeDownloadFilesInfoReadyOrFinished struct {
+	Processing string `json:"processing"`
+	TaskIndex  string `json:"taskIndex"`
+}
+
+//MessageTypeDownloadFilesReadyOrFinished применяется для отправки сообщений о готовности или завершении передачи
+type MessageTypeDownloadFilesReadyOrFinished struct {
+	MessageType string
+	Info        MessageTypeDownloadFilesInfoReadyOrFinished `json:"info"`
+}
+
+//MessageTypeDownloadFilesExecute применяется для отправки сообщений о передаче файлов
+type MessageTypeDownloadFilesExecute struct {
+	MessageType string
+	Info        MessageTypeDownloadFilesInfoExecute `json:"info"`
 }

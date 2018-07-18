@@ -8,20 +8,30 @@ import (
 	"moth_go/saveMessageApp"
 )
 
+//отправляем сообщение о готовности к передаче файлов
+func sendMessageReady(chanSendMoth chan<- configure.ChanInfoDownloadTask, taskIndex, remoteIP string) {
+	chanSendMoth <- configure.ChanInfoDownloadTask{
+		TaskIndex:      taskIndex,
+		TypeProcessing: "ready",
+		RemoteIP:       remoteIP,
+	}
+}
+
 //RequestTypeDownloadFiles выполняет подготовку к выполнению задачи по выгрузки файлов
 func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("START function RequestTypeDownloadFiles...")
 
 	fmt.Println("--------------- mtdf ---------------", mtdf)
 
-	switch mtdf.Info.Processing {
-	case "start":
-
-		//проверяем количество одновременно выполняемых задач
-		if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP) {
+	/*
+					проверяем количество одновременно выполняемых задач
+		запускать go подпрограмму только если с указанного ip адреса не было задач на выгрузку файлов
+	*/
+	if !dfi.HasTaskDownloadFiles(pfrdf.RemoteIP) {
+		if mtdf.Info.Processing != "start" {
 			if err := errorMessage.SendErrorMessage(errorMessage.Options{
 				RemoteIP:   pfrdf.RemoteIP,
-				ErrMsg:     "limitTasks",
+				ErrMsg:     "badRequest",
 				TaskIndex:  mtdf.Info.TaskIndex,
 				ExternalIP: pfrdf.ExternalIP,
 				Wsc:        pfrdf.AccessClientsConfigure.Addresses[pfrdf.RemoteIP].WsConnection,
@@ -45,42 +55,43 @@ func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFi
 			return
 		}
 
-		if mtdf.Info.DownloadSelectedFiles {
-			//объединение списков файлов переданных клиентом
-			layoutListCompleted, err := helpers.MergingFileListForTaskDownloadFiles(pfrdf, mtdf, dfi)
-			if err != nil {
-				if err := errorMessage.SendErrorMessage(errorMessage.Options{
-					RemoteIP:   pfrdf.RemoteIP,
-					ErrMsg:     "unexpectedValue",
-					TaskIndex:  mtdf.Info.TaskIndex,
-					ExternalIP: pfrdf.ExternalIP,
-					Wsc:        pfrdf.AccessClientsConfigure.Addresses[pfrdf.RemoteIP].WsConnection,
-				}); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-				}
-				return
-			}
+		if !mtdf.Info.DownloadSelectedFiles {
+			fmt.Println("+++++ START DOWNLOAD FILES without combining the lists of files ++++++")
 
-			//если компоновка списка не завершена
-			if !layoutListCompleted {
-				return
-			}
-			fmt.Println("-----+++++ COMPARENT MESSAGE DOWNLOAD FILES +++++------")
+			go ProcessingDownloadFiles(pfrdf, dfi)
 
+			//отправляем сообщение о готовности к передаче файлов
+			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
 		}
 
-		fmt.Println("------- TEST START DOWNLOAD FILES MESSAGE -----", mtdf.Info.TaskIndex)
+		//объединение списков файлов переданных клиентом если установлен флаг DownloadSelectedFiles = true
+		layoutListCompleted, err := helpers.MergingFileListForTaskDownloadFiles(pfrdf, mtdf, dfi)
+		if err != nil {
+			if err := errorMessage.SendErrorMessage(errorMessage.Options{
+				RemoteIP:   pfrdf.RemoteIP,
+				ErrMsg:     "unexpectedValue",
+				TaskIndex:  mtdf.Info.TaskIndex,
+				ExternalIP: pfrdf.ExternalIP,
+				Wsc:        pfrdf.AccessClientsConfigure.Addresses[pfrdf.RemoteIP].WsConnection,
+			}); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+			return
+		}
 
-	case "stop":
+		//если компоновка списка не завершена
+		if !layoutListCompleted {
+			fmt.Println("COMPARE MESSAGE LIST NOT COMPLETED")
 
-	case "ready":
+			return
+		}
+		fmt.Println("-----+++++ START DOWNLOAD FILES COMPARENT MESSAGE DOWNLOAD FILES +++++------")
 
-	case "waiting for transfer":
+		go ProcessingDownloadFiles(pfrdf, dfi)
 
-	case "execute success":
-
-	case "execute failure":
+		//отправляем сообщение о готовности к передаче файлов
+		sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
+	} else {
 
 	}
-
 }

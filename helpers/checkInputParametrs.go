@@ -18,7 +18,7 @@ var regexpPatterns = map[string]string{
 	"IPAddress":                        `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$`,
 	"Network":                          `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/[0-9]{1,2}$`,
 	"fileName":                         `^(\w|_)+\.(tdp|pcap)$`,
-	"pathDirectoryStoryFilesFiltering": `^(\W|_|\/)$`,
+	"pathDirectoryStoryFilesFiltering": `^(\w|_|/)+$`,
 }
 
 func checkDateTime(dts, dte uint64) bool {
@@ -75,11 +75,15 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 
 	patternCompile, err := regexp.Compile(regexpPatterns["pathDirectoryStoryFilesFiltering"])
 	if err != nil {
+
+		fmt.Println("CHECK ERROR 1")
 		return false
 	}
 
 	ok := patternCompile.MatchString(mtdf.Info.DownloadDirectoryFiles)
 	if !ok {
+
+		fmt.Println("CHECK ERROR 2", mtdf.Info.DownloadDirectoryFiles)
 		return false
 	}
 
@@ -87,6 +91,8 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 
 	listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
 	if err != nil {
+
+		fmt.Println("CHECK ERROR 3")
 		return false
 	}
 
