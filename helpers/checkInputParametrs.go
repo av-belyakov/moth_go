@@ -76,25 +76,39 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 	patternCompile, err := regexp.Compile(regexpPatterns["pathDirectoryStoryFilesFiltering"])
 	if err != nil {
 
-		fmt.Println("CHECK ERROR 1")
+		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 1")
 		return false
 	}
+
+	fmt.Println("---- function checkPathStorageFilterFiles CHECK 1 SUCCESS")
 
 	ok := patternCompile.MatchString(mtdf.Info.DownloadDirectoryFiles)
 	if !ok {
 
-		fmt.Println("CHECK ERROR 2", mtdf.Info.DownloadDirectoryFiles)
+		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 2", mtdf.Info.DownloadDirectoryFiles)
 		return false
 	}
 
-	dfi.RemoteIP[remoteIP].DirectoryFiltering = mtdf.Info.DownloadDirectoryFiles
+	fmt.Println("---- function checkPathStorageFilterFiles CHECK 2 SUCCESS")
+
+	dfi.RemoteIP[remoteIP] = &configure.TaskInformationDownloadFiles{
+		TaskIndex:               mtdf.Info.TaskIndex,
+		DirectoryFiltering:      mtdf.Info.DownloadDirectoryFiles,
+		SelectedFiles:           mtdf.Info.DownloadSelectedFiles,
+		TotalCountDownloadFiles: mtdf.Info.CountDownloadSelectedFiles,
+		ListDownloadFiles:       map[string]*configure.FileInformationDownloadFiles{},
+	}
 
 	listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
 	if err != nil {
 
-		fmt.Println("CHECK ERROR 3")
+		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 3")
 		return false
 	}
+
+	fmt.Println("---- function checkPathStorageFilterFiles CHECK 3 SUCCESS")
+
+	fmt.Println(dfi.RemoteIP[remoteIP])
 
 	for _, files := range listFiles {
 		dfi.RemoteIP[remoteIP].ListDownloadFiles[files.Name()] = &configure.FileInformationDownloadFiles{
@@ -102,6 +116,8 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 			NumberTransferAttempts: 3,
 		}
 	}
+
+	fmt.Println("---- function checkPathStorageFilterFiles CREATE LIST FILES")
 
 	return true
 }

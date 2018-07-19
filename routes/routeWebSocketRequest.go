@@ -321,7 +321,9 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 		msgInfoDownloadTask := <-acc.ChanInfoDownloadTaskSendMoth
 
 		fmt.Println("func processMsgDownloadComingChannel package routeWebSocketRequest")
+		fmt.Println("-----------------------------------")
 		fmt.Println("CHANNEL acc.ChanInfoDownloadTask, message...", msgInfoDownloadTask)
+		fmt.Println("-----------------------------------")
 
 		if _, ok := acc.Addresses[remoteIP]; ok {
 			switch msgInfoDownloadTask.TypeProcessing {
@@ -333,6 +335,8 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 						TaskIndex:  msgInfoDownloadTask.TaskIndex,
 					},
 				}
+
+				fmt.Println(mtdfrf)
 
 				formatJSON, err := json.Marshal(&mtdfrf)
 				if err != nil {
@@ -450,7 +454,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			pfrdf.PathStorageFilterFiles = mc.PathStorageFilterFiles
 			pfrdf.AccessClientsConfigure = acc
 
-			processingWebsocketRequest.RequestTypeDownloadFiles(pfrdf, messageTypeDownloadFiles, dfi)
+			processingWebsocketRequest.RequestTypeDownloadFiles(&pfrdf, messageTypeDownloadFiles, dfi)
 		}
 	}
 }

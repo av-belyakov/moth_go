@@ -127,12 +127,12 @@ type MessageTypeDownloadFilesInfoReadyOrFinished struct {
 
 //MessageTypeDownloadFilesReadyOrFinished применяется для отправки сообщений о готовности или завершении передачи
 type MessageTypeDownloadFilesReadyOrFinished struct {
-	MessageType string
+	MessageType string                                      `json:"messageType"`
 	Info        MessageTypeDownloadFilesInfoReadyOrFinished `json:"info"`
 }
 
 //MessageTypeDownloadFilesExecute применяется для отправки сообщений о передаче файлов
 type MessageTypeDownloadFilesExecute struct {
-	MessageType string
+	MessageType string                              `json:"messageType"`
 	Info        MessageTypeDownloadFilesInfoExecute `json:"info"`
 }

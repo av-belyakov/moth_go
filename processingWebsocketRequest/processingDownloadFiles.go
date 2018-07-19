@@ -6,7 +6,7 @@ import (
 )
 
 //ProcessingDownloadFiles осуществляет обработку запросов на скачивание файлов
-func ProcessingDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
+func ProcessingDownloadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("DOWNLOADING, function ProcessingDownloadFiles START...")
 
 	for {

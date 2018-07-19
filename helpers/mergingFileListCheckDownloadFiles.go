@@ -11,7 +11,7 @@ import (
 )
 
 //MergingFileListForTaskDownloadFiles выполняет объединение списков файлов переданных клиентом и предназначенны для выгрузки файлов
-func MergingFileListForTaskDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) (bool, error) {
+func MergingFileListForTaskDownloadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) (bool, error) {
 	errorMsg := errorMessage.Options{
 		RemoteIP:   pfrdf.RemoteIP,
 		ErrMsg:     "filesNotFound",

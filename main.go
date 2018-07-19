@@ -180,7 +180,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
 		if _, ok := acc.Addresses[remoteIP]; !ok {
-			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND WEBSOCKET DISCONNECT")
+			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
 		}
 		fmt.Println("websocket disconnect!!!")
 	}()
@@ -281,6 +281,7 @@ func init() {
 	}()
 
 	ift.TaskID = make(map[string]*configure.TaskInformation)
+	dfi.RemoteIP = make(map[string]*configure.TaskInformationDownloadFiles)
 }
 
 func main() {

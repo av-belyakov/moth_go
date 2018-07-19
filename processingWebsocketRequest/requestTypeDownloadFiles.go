@@ -18,10 +18,8 @@ func sendMessageReady(chanSendMoth chan<- configure.ChanInfoDownloadTask, taskIn
 }
 
 //RequestTypeDownloadFiles выполняет подготовку к выполнению задачи по выгрузки файлов
-func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) {
+func RequestTypeDownloadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("START function RequestTypeDownloadFiles...")
-
-	fmt.Println("--------------- mtdf ---------------", mtdf)
 
 	/*
 					проверяем количество одновременно выполняемых задач
@@ -43,6 +41,9 @@ func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFi
 
 		//проверяем входные параметры (наличие директории с файлами)
 		if errMsg, ok := helpers.InputParametersForDownloadFile(pfrdf.RemoteIP, mtdf, dfi); !ok {
+			fmt.Println("ERROR CHECK user input", errMsg)
+			fmt.Println(ok)
+
 			if err := errorMessage.SendErrorMessage(errorMessage.Options{
 				RemoteIP:   pfrdf.RemoteIP,
 				ErrMsg:     errMsg,
@@ -62,6 +63,7 @@ func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFi
 
 			//отправляем сообщение о готовности к передаче файлов
 			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
+			return
 		}
 
 		//объединение списков файлов переданных клиентом если установлен флаг DownloadSelectedFiles = true
@@ -91,7 +93,9 @@ func RequestTypeDownloadFiles(pfrdf configure.ParametrsFunctionRequestDownloadFi
 
 		//отправляем сообщение о готовности к передаче файлов
 		sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
-	} else {
-
+		return
 	}
+	//обработка всех запросов кроме начального со значением processong = 'start'
+	go ProcessingDownloadFiles(pfrdf, dfi)
+
 }
