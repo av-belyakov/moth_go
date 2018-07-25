@@ -7,27 +7,41 @@ import (
 
 //ProcessingDownloadFiles осуществляет обработку запросов на скачивание файлов
 func ProcessingDownloadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
-	fmt.Println("DOWNLOADING, function ProcessingDownloadFiles START...")
+	fmt.Println("*************** DOWNLOADING, function ProcessingDownloadFiles START...")
+	fmt.Println("--- 2 /////////////////////// dfi listFiles ", dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles)
 
 	for {
 		msgInfoDownloadTask := <-pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth
 
-		fmt.Println("func ProcessingDownloadFiles package routeWebSocketRequest")
-		fmt.Println(msgInfoDownloadTask)
+		fmt.Println("****ROUTING**** func ProcessingDownloadFiles package routeWebSocketRequest")
 
+		switch msgInfoDownloadTask.TypeProcessing {
+		/*		case "start":
+				fmt.Println("RESIVED MSG TYPE 'start'")
+		*/
+		case "stop":
+			fmt.Println("RESIVED MSG TYPE 'stop'", "drop user type 'DownloadFilesInformation'")
+
+		case "cancel":
+			fmt.Println("RESIVED MSG TYPE 'cancel'")
+
+			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+
+			fmt.Println(dfi)
+
+		case "ready":
+			fmt.Println("RESIVED MSG TYPE 'ready'")
+			//инициализация начала передачи файлов
+
+		case "waiting for transfer":
+			fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
+
+		case "execute success":
+			fmt.Println("RESIVED MSG TYPE 'execute success'")
+
+		case "execute failure":
+			fmt.Println("RESIVED MSG TYPE 'execute failure'")
+
+		}
 	}
-	/*switch mtdf.Info.Processing {
-	case "start":
-
-	case "stop":
-
-	case "ready":
-
-	case "waiting for transfer":
-
-	case "execute success":
-
-	case "execute failure":
-
-	}*/
 }

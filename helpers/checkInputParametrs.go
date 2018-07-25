@@ -91,6 +91,11 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 
 	fmt.Println("---- function checkPathStorageFilterFiles CHECK 2 SUCCESS")
 
+	//если это не первое сообщение типа start (при передачи списка файлов необходимых дляскачивания)
+	if mtdf.Info.NumberMessageParts[0] > 0 {
+		return true
+	}
+
 	dfi.RemoteIP[remoteIP] = &configure.TaskInformationDownloadFiles{
 		TaskIndex:               mtdf.Info.TaskIndex,
 		DirectoryFiltering:      mtdf.Info.DownloadDirectoryFiles,
@@ -99,25 +104,27 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 		ListDownloadFiles:       map[string]*configure.FileInformationDownloadFiles{},
 	}
 
-	listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
-	if err != nil {
+	if !mtdf.Info.DownloadSelectedFiles {
+		listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
+		if err != nil {
 
-		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 3")
-		return false
-	}
-
-	fmt.Println("---- function checkPathStorageFilterFiles CHECK 3 SUCCESS")
-
-	fmt.Println(dfi.RemoteIP[remoteIP])
-
-	for _, files := range listFiles {
-		dfi.RemoteIP[remoteIP].ListDownloadFiles[files.Name()] = &configure.FileInformationDownloadFiles{
-			FileSize:               files.Size(),
-			NumberTransferAttempts: 3,
+			fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 3")
+			return false
 		}
-	}
 
-	fmt.Println("---- function checkPathStorageFilterFiles CREATE LIST FILES")
+		fmt.Println("---- function checkPathStorageFilterFiles CHECK 3 SUCCESS")
+		fmt.Println("-*-*-*-*-", dfi.RemoteIP[remoteIP], dfi.RemoteIP[remoteIP].ListDownloadFiles, "-*-*-*-*-")
+
+		for _, files := range listFiles {
+			dfi.RemoteIP[remoteIP].ListDownloadFiles[files.Name()] = &configure.FileInformationDownloadFiles{
+				FileSize:               files.Size(),
+				NumberTransferAttempts: 3,
+			}
+		}
+
+		fmt.Println("---- function checkPathStorageFilterFiles CREATE LIST FILES")
+
+	}
 
 	return true
 }

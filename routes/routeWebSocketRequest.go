@@ -320,7 +320,7 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 	for {
 		msgInfoDownloadTask := <-acc.ChanInfoDownloadTaskSendMoth
 
-		fmt.Println("func processMsgDownloadComingChannel package routeWebSocketRequest")
+		fmt.Println("++++++++++ START function processMsgDownloadComingChannel package routeWebSocketRequest ++++++++++")
 		fmt.Println("-----------------------------------")
 		fmt.Println("CHANNEL acc.ChanInfoDownloadTask, message...", msgInfoDownloadTask)
 		fmt.Println("-----------------------------------")
@@ -383,7 +383,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "******************")
+		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "********* funcrouteWebsocketRequest *********")
 
 		switch messageType.Type {
 		case "ping":

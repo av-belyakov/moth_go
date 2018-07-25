@@ -22,10 +22,19 @@ type DownloadFilesInformation struct {
 	RemoteIP map[string]*TaskInformationDownloadFiles
 }
 
-//HasTaskDownloadFiles проверяет наличие задачи по скачиванию файлов
-func (dfi *DownloadFilesInformation) HasTaskDownloadFiles(remoteIP string) bool {
+//HasRemoteIPDownloadFiles проверяет наличие ip адреса с которого выполнялись запросы по скачиванию файлов
+func (dfi *DownloadFilesInformation) HasRemoteIPDownloadFiles(remoteIP string) bool {
 	_, fount := dfi.RemoteIP[remoteIP]
 	return fount
+}
+
+//HasTaskDownloadFiles проверяет наличие задачи по скачиванию файлов
+func (dfi *DownloadFilesInformation) HasTaskDownloadFiles(remoteIP, taskIndex string) bool {
+	if ok := dfi.HasRemoteIPDownloadFiles(remoteIP); !ok {
+		return false
+	}
+
+	return dfi.RemoteIP[remoteIP].TaskIndex == taskIndex
 }
 
 //AddTaskDownloadFiles добавляет новую задачу по выгрузке файлов
