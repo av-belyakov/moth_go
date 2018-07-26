@@ -2,8 +2,6 @@ package configure
 
 //FileInformationDownloadFiles содержит подробную информацию о передаваемом файле
 type FileInformationDownloadFiles struct {
-	FileSize               int64
-	FIleHash               string
 	NumberTransferAttempts int
 }
 

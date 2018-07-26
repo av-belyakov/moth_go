@@ -34,9 +34,9 @@ type ChanInfoFilterTask struct {
 
 //InfoFileDownloadTask информация по передоваемому файлу
 type InfoFileDownloadTask struct {
-	fileName string
-	fileHash string
-	fileSize int64
+	FileName string
+	FileHash string
+	FileSize int64
 }
 
 //ChanInfoDownloadTask описание типа канала предназначенного для отправки информации при выгрузке файлов

@@ -115,9 +115,8 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 		fmt.Println("---- function checkPathStorageFilterFiles CHECK 3 SUCCESS")
 		fmt.Println("-*-*-*-*-", dfi.RemoteIP[remoteIP], dfi.RemoteIP[remoteIP].ListDownloadFiles, "-*-*-*-*-")
 
-		for _, files := range listFiles {
-			dfi.RemoteIP[remoteIP].ListDownloadFiles[files.Name()] = &configure.FileInformationDownloadFiles{
-				FileSize:               files.Size(),
+		for _, f := range listFiles {
+			dfi.RemoteIP[remoteIP].ListDownloadFiles[f.Name()] = &configure.FileInformationDownloadFiles{
 				NumberTransferAttempts: 3,
 			}
 		}

@@ -10,6 +10,8 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 	fmt.Println("*************** DOWNLOADING, function ProcessingDownloadFiles START...")
 	fmt.Println("--- 2 /////////////////////// dfi listFiles ", dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles)
 
+	chanSendFile := make(chan configure.ChanSendFile)
+
 	for {
 		msgInfoDownloadTask := <-pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth
 
@@ -31,7 +33,9 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 
 		case "ready":
 			fmt.Println("RESIVED MSG TYPE 'ready'")
+
 			//инициализация начала передачи файлов
+			go ProcessingUploadFiles(pfrdf, dfi, chanSendFile)
 
 		case "waiting for transfer":
 			fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
@@ -39,9 +43,12 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 		case "execute success":
 			fmt.Println("RESIVED MSG TYPE 'execute success'")
 
+			chanSendFile <- "success"
+
 		case "execute failure":
 			fmt.Println("RESIVED MSG TYPE 'execute failure'")
 
+			chanSendFile <- "failure"
 		}
 	}
 }

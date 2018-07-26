@@ -30,9 +30,6 @@ func MergingFileListForTaskDownloadFiles(pfrdf *configure.ParametrsFunctionReque
 
 		dfi.RemoteIP[pfrdf.RemoteIP].NumberPleasantMessages = 0
 
-		fmt.Println("!!!!!! FERST ELEMENT DOWNLOAD FILES")
-		fmt.Println("ALL FILES TRANSMITION =", dfi.RemoteIP[pfrdf.RemoteIP].TotalCountDownloadFiles)
-
 		return false, nil
 	}
 
@@ -48,8 +45,7 @@ func MergingFileListForTaskDownloadFiles(pfrdf *configure.ParametrsFunctionReque
 			continue
 		}
 
-		fileStat, err := f.Stat()
-		if err != nil {
+		if _, err := f.Stat(); err != nil {
 			if err := errorMessage.SendErrorMessage(errorMsg); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
@@ -57,7 +53,6 @@ func MergingFileListForTaskDownloadFiles(pfrdf *configure.ParametrsFunctionReque
 		}
 
 		dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName] = &configure.FileInformationDownloadFiles{
-			FileSize:               fileStat.Size(),
 			NumberTransferAttempts: 3,
 		}
 
@@ -67,6 +62,7 @@ func MergingFileListForTaskDownloadFiles(pfrdf *configure.ParametrsFunctionReque
 	dfi.RemoteIP[pfrdf.RemoteIP].NumberPleasantMessages++
 
 	if dfi.RemoteIP[pfrdf.RemoteIP].NumberPleasantMessages == mtdf.Info.NumberMessageParts[1] {
+
 		fmt.Println("!!!!!! LAST ELEMENT DOWNLOAD FILES")
 		fmt.Println(dfi.RemoteIP[pfrdf.RemoteIP].NumberPleasantMessages, " = ", mtdf.Info.NumberMessageParts[1])
 

@@ -454,7 +454,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			pfrdf.PathStorageFilterFiles = mc.PathStorageFilterFiles
 			pfrdf.AccessClientsConfigure = acc
 
-			processingWebsocketRequest.RequestTypeDownloadFiles(&pfrdf, messageTypeDownloadFiles, dfi)
+			processingWebsocketRequest.RequestTypeUploadFiles(&pfrdf, messageTypeDownloadFiles, dfi)
 		}
 	}
 }

@@ -57,7 +57,7 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 		if !mtdf.Info.DownloadSelectedFiles {
 			fmt.Println("+++++ START DOWNLOAD FILES without combining the lists of files ++++++")
 
-			go RouteProcessingDownloadFiles(pfrdf, dfi)
+			go RouteProcessingUploadFiles(pfrdf, dfi)
 
 			//отправляем сообщение о готовности к передаче файлов
 			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
@@ -85,7 +85,7 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 			}
 			fmt.Println("-----+++++ START DOWNLOAD FILES COMPARENT MESSAGE DOWNLOAD FILES +++++------")
 
-			go RouteProcessingDownloadFiles(pfrdf, dfi)
+			go RouteProcessingUploadFiles(pfrdf, dfi)
 
 			//отправляем сообщение о готовности к передаче файлов
 			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
