@@ -336,7 +336,8 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 					},
 				}
 
-				fmt.Println(mtdfrf)
+				fmt.Println("->->-> send MSG 'ready' to Flashlight ->->->")
+				fmt.Printf("%v", mtdfrf)
 
 				formatJSON, err := json.Marshal(&mtdfrf)
 				if err != nil {
@@ -347,6 +348,29 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 					acc.ChanWebsocketTranssmition <- formatJSON
 				}
 			case "execute":
+				mtdfe := configure.MessageTypeDownloadFilesExecute{
+					MessageType: "download files",
+					Info: configure.MessageTypeDownloadFilesInfoExecute{
+						FileName: msgInfoDownloadTask.InfoFileDownloadTask.FileName,
+						FileHash: msgInfoDownloadTask.InfoFileDownloadTask.FileHash,
+						FileSize: msgInfoDownloadTask.InfoFileDownloadTask.FileSize,
+					},
+				}
+
+				mtdfe.Info.Processing = msgInfoDownloadTask.TypeProcessing
+				mtdfe.Info.TaskIndex = msgInfoDownloadTask.TaskIndex
+
+				fmt.Println("->->-> send MSG 'execute' to Flashlight ->->->")
+				fmt.Printf("%v", mtdfe)
+
+				formatJSON, err := json.Marshal(&mtdfe)
+				if err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				if _, ok := acc.Addresses[remoteIP]; ok {
+					acc.ChanWebsocketTranssmition <- formatJSON
+				}
 
 			case "execute completed":
 

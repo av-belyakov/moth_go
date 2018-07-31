@@ -2,9 +2,11 @@ package processingWebsocketRequest
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"moth_go/configure"
 	"moth_go/errorMessage"
@@ -29,6 +31,9 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 	}
 
 	getHashSum := func(pathFile, nameFile string) (string, error) {
+
+		fmt.Println("READ FILE", pathFile+"/"+nameFile)
+
 		f, err := os.Open(pathFile + "/" + nameFile)
 		if err != nil {
 			return "", err
@@ -40,7 +45,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 			return "", err
 		}
 
-		return fmt.Sprintln(h.Sum(nil)), nil
+		return hex.EncodeToString(h.Sum(nil)), nil
 	}
 
 	//проверяем наличие файлов для передачи
@@ -52,44 +57,37 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 	storageDirectory := dfi.RemoteIP[pfrdf.RemoteIP].DirectoryFiltering
 
-	num := 0
-	var firstFile string
 	for fn := range dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles {
-		if num >= 1 {
+		fileStats, err := os.Stat(storageDirectory + "/" + fn)
+		if err != nil {
+			sendMessageError("filesNotFound")
+
 			return
 		}
 
-		fmt.Println("________________ ready send first file:", storageDirectory+"/"+fn)
+		if (fileStats.Size() != 24) && (!strings.Contains(fileStats.Name(), ".txt")) {
+			fileHash, err := getHashSum(storageDirectory, fn)
+			if err != nil {
+				sendMessageError("filesNotFound")
 
-		firstFile = fn
-		num++
-	}
+				return
+			}
 
-	fileStats, err := os.Stat(storageDirectory + "/" + firstFile)
-	if err != nil {
-		sendMessageError("filesNotFound")
+			fmt.Println("------------************ FILE HASH", fileHash, " ----------------------")
 
-		return
-	}
+			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+				TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+				TypeProcessing: "execute",
+				RemoteIP:       pfrdf.RemoteIP,
+				InfoFileDownloadTask: configure.InfoFileDownloadTask{
+					FileName: fileStats.Name(),
+					FileHash: fileHash,
+					FileSize: fileStats.Size(),
+				},
+			}
 
-	fileHash, err := getHashSum(storageDirectory, firstFile)
-	if err != nil {
-		sendMessageError("filesNotFound")
-
-		return
-	}
-
-	fmt.Println("------------************ FILE HASH", fileHash, " ----------------------")
-
-	pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-		TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-		TypeProcessing: "execute",
-		RemoteIP:       pfrdf.RemoteIP,
-		InfoFileDownloadTask: configure.InfoFileDownloadTask{
-			FileName: fileStats.Name(),
-			FileHash: fileHash,
-			FileSize: fileStats.Size(),
-		},
+			break
+		}
 	}
 
 	for {
