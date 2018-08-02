@@ -39,7 +39,9 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 
 		case "waiting for transfer":
 			fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
+			fmt.Println(msgInfoDownloadTask)
 
+			//непосредственная передача файла
 		case "execute success":
 			fmt.Println("RESIVED MSG TYPE 'execute success'")
 

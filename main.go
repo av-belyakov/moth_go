@@ -198,6 +198,33 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
+			/*
+				ТАК КАК тип сообщения определяется значениями 1 или 2,
+				1 - текст, 2 - бинарный, то необходимо предусмотреть получение
+				из нескольких каналов (через SELECT) и организовать выбор типа отправляемого
+				сообщения.
+
+				select {
+				case messageText := <-acc.ChanWebsocketTranssmition:
+					if _, isExist := acc.Addresses[remoteIP]; isExist {
+						if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
+							_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+						}
+					}
+				case messageBinary := <- acc.ChanWebsocketTranssmitionBinary:
+					if _, isExist := acc.Addresses[remoteIP]; isExist {
+						if err := acc.Addresses[remoteIP].SendWsMessage(2, message); err != nil {
+							_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+						}
+					}
+				}
+
+				!!! ДОПОЛНИТЕЛЬНО создать два канала
+				- для передачи бинарных данных
+				- для передачи сообщений об остановке чтения файлов
+
+			*/
+
 			/*select {
 			case message := <-acc.ChanWebsocketTranssmition:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
