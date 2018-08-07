@@ -99,7 +99,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 			fmt.Println("TRANSSMITION SUCCESS, NEXT FILE...")
 		case "failure":
-			//не удачная передача файла, повторная передача до бонуления счетчика
+			//не удачная передача файла, повторная передача до обнуления счетчика
 
 			fmt.Println("TRANSMITTION FAILURE, REPEATEDLY")
 		}

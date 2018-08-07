@@ -17,7 +17,7 @@ func sendMessageReady(chanSendMoth chan<- configure.ChanInfoDownloadTask, taskIn
 	}
 }
 
-//RequestTypeDownloadFiles выполняет подготовку к выполнению задачи по выгрузки файлов
+//RequestTypeUploadFiles выполняет подготовку к выполнению задачи по выгрузки файлов
 func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("START function RequestTypeDownloadFiles...")
 

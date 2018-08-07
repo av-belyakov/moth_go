@@ -188,6 +188,8 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	acc.Addresses[remoteIP].WsConnection = c
 
 	acc.ChanWebsocketTranssmition = make(chan []byte)
+	acc.ChanWebsocketTranssmitionBinary = make(chan []byte)
+	acc.ChanStopReadBinaryFile = make(chan string)
 
 	go func(acc *configure.AccessClientsConfigure) {
 		for {

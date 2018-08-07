@@ -373,6 +373,7 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 				}
 
 			case "execute completed":
+				fmt.Println("!!!---- file UPLOADING complite ----")
 
 			case "finished":
 

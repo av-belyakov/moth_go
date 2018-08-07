@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -19,6 +20,21 @@ var regexpPatterns = map[string]string{
 	"Network":                          `^((25[0-5]|2[0-4]\d|[01]?\d\d?)[.]){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/[0-9]{1,2}$`,
 	"fileName":                         `^(\w|_)+\.(tdp|pcap)$`,
 	"pathDirectoryStoryFilesFiltering": `^(\w|_|/)+$`,
+}
+
+//CheckFileName проверяет имя файла на соответствие регулярному выражению
+func CheckFileName(fileName, patternName string) error {
+	pattern, found := regexpPatterns[patternName]
+	if !found {
+		return errors.New("function 'CheckFileName': not found the pattern for the regular expression")
+	}
+
+	patterCheckFileName := regexp.MustCompile(pattern)
+	if ok := patterCheckFileName.MatchString(fileName); ok {
+		return nil
+	}
+
+	return errors.New("file name does not match the specified regular expression")
 }
 
 func checkDateTime(dts, dte uint64) bool {
@@ -55,7 +71,7 @@ func checkNetworkOrIPAddress(typeValue string, value []string) ([]string, bool) 
 	return validValues, true
 }
 
-func checkFileName(dirName string, listFiles []string, pattern *regexp.Regexp, done chan<- struct{}, answer chan<- CheckedFile) {
+func checkFilesName(dirName string, listFiles []string, pattern *regexp.Regexp, done chan<- struct{}, answer chan<- CheckedFile) {
 	var checkedFile CheckedFile
 
 	for _, file := range listFiles {
@@ -152,7 +168,7 @@ func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisk
 				count++
 				newListFilesFilter[currentDisk] = []string{}
 				list := listFilesFilter[currentDisk]
-				go checkFileName(currentDisk, list, patterCheckFileName, done, answer)
+				go checkFilesName(currentDisk, list, patterCheckFileName, done, answer)
 			}
 		}
 	}

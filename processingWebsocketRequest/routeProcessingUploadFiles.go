@@ -10,6 +10,7 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 	fmt.Println("*************** DOWNLOADING, function ProcessingDownloadFiles START...")
 	fmt.Println("--- 2 /////////////////////// dfi listFiles ", dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles)
 
+	//канал с информацией об успешной или не успешной передаче файла
 	chanSendFile := make(chan configure.ChanSendFile)
 
 	for {
@@ -42,6 +43,7 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 			fmt.Println(msgInfoDownloadTask)
 
 			//непосредственная передача файла
+			go ReadSelectedFile(pfrdf, dfi, msgInfoDownloadTask.InfoFileDownloadTask.FileName)
 		case "execute success":
 			fmt.Println("RESIVED MSG TYPE 'execute success'")
 
