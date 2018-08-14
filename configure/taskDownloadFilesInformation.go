@@ -5,11 +5,19 @@ type FileInformationDownloadFiles struct {
 	NumberTransferAttempts int
 }
 
+//FileInfoinQueue информация по файлы в очереди
+type FileInfoinQueue struct {
+	FileName string
+	FileHash string
+	FileSize int64
+}
+
 //TaskInformationDownloadFiles информация о выполняемой задаче
 type TaskInformationDownloadFiles struct {
 	TaskIndex               string
 	DirectoryFiltering      string
 	TotalCountDownloadFiles int
+	FileInQueue             FileInfoinQueue
 	SelectedFiles           bool
 	NumberPleasantMessages  int
 	ListDownloadFiles       map[string]*FileInformationDownloadFiles

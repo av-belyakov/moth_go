@@ -29,6 +29,9 @@ func CheckFileName(fileName, patternName string) error {
 		return errors.New("function 'CheckFileName': not found the pattern for the regular expression")
 	}
 
+	fmt.Println("START function CheckFileName...")
+	fmt.Println("fileName:", fileName, "patternName:", pattern)
+
 	patterCheckFileName := regexp.MustCompile(pattern)
 	if ok := patterCheckFileName.MatchString(fileName); ok {
 		return nil

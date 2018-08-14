@@ -193,10 +193,25 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 	go func(acc *configure.AccessClientsConfigure) {
 		for {
-			message := <-acc.ChanWebsocketTranssmition
+			/*message := <-acc.ChanWebsocketTranssmition
 			if _, isExist := acc.Addresses[remoteIP]; isExist {
 				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+			}*/
+
+			select {
+			case messageText := <-acc.ChanWebsocketTranssmition:
+				if _, isExist := acc.Addresses[remoteIP]; isExist {
+					if err := acc.Addresses[remoteIP].SendWsMessage(1, messageText); err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
+				}
+			case messageBinary := <-acc.ChanWebsocketTranssmitionBinary:
+				if _, isExist := acc.Addresses[remoteIP]; isExist {
+					if err := acc.Addresses[remoteIP].SendWsMessage(2, messageBinary); err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
 				}
 			}
 

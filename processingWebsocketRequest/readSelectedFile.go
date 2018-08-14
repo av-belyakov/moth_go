@@ -13,10 +13,12 @@ import (
 )
 
 //ReadSelectedFile чтение выбранного файла
-func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, fileName string) {
+func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("START function ReadSelectedFile...")
+	fmt.Println(dfi.RemoteIP[pfrdf.RemoteIP])
 
 	const countByte = 1024
+	fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
 
 	sendMessageError := func(errType string) {
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
@@ -34,17 +36,22 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 	//проверяем имя файла на соответствие регулярному выражению
 	if err := helpers.CheckFileName(fileName, "fileName"); err != nil {
 
-		fmt.Println("... ERROR function ReadSelectedFile", err)
+		fmt.Println("... ERROR function ReadSelectedFile - ", err)
 
 		sendMessageError("unexpectedValue")
 
 		return
 	}
 
-	filePath := pfrdf.PathStorageFilterFiles + "/" + fileName
+	filePath := dfi.RemoteIP[pfrdf.RemoteIP].DirectoryFiltering + "/" + fileName
+
+	fmt.Println(filePath)
 
 	fileStats, err := os.Stat(filePath)
 	if err != nil {
+
+		fmt.Println(err)
+
 		sendMessageError("filesNotFound")
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
@@ -70,6 +77,9 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 	countCycle := getCountCycle(fileStats.Size(), countByte)
 
 	for i := 0; i < countCycle; i++ {
+
+		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
+
 		select {
 		case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
 			//проверка наличия выполняющейся задачи с заданным ID и выход из функции
@@ -88,6 +98,9 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			data, err := readNextBytes(file, countByte, i)
 			if err != nil {
 				if err == io.EOF {
+
+					fmt.Println(err)
+
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
 						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
 						TypeProcessing: "execute completed",
@@ -97,15 +110,18 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 							FileSize: fileStats.Size(),
 						},
 					}
+				} else {
+					sendMessageError("filesNotFound")
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
-
-				sendMessageError("filesNotFound")
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 				break
 			}
 
-			fmt.Printf("%v", data)
+			//fmt.Printf("%v", data)
+			if countCycle == i {
+				fmt.Println(data)
+			}
 
 			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 		}

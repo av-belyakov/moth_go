@@ -65,12 +65,20 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 			return
 		}
 
-		if (fileStats.Size() != 24) && (!strings.Contains(fileStats.Name(), ".txt")) {
+		fileSize := fileStats.Size()
+
+		if (fileSize != 24) && (!strings.Contains(fileStats.Name(), ".txt")) {
 			fileHash, err := getHashSum(storageDirectory, fn)
 			if err != nil {
 				sendMessageError("filesNotFound")
 
 				return
+			}
+
+			dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue = configure.FileInfoinQueue{
+				FileName: fn,
+				FileHash: fileHash,
+				FileSize: fileSize,
 			}
 
 			fmt.Println("------------************ FILE HASH", fileHash, " ----------------------")
@@ -82,7 +90,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				InfoFileDownloadTask: configure.InfoFileDownloadTask{
 					FileName: fileStats.Name(),
 					FileHash: fileHash,
-					FileSize: fileStats.Size(),
+					FileSize: fileSize,
 				},
 			}
 

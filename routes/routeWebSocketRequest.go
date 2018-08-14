@@ -375,11 +375,35 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 			case "execute completed":
 				fmt.Println("!!!---- file UPLOADING complite ----")
 
+				mtdfe := configure.MessageTypeDownloadFilesExecute{
+					MessageType: "download files",
+					Info: configure.MessageTypeDownloadFilesInfoExecute{
+						FileName: msgInfoDownloadTask.InfoFileDownloadTask.FileName,
+						FileSize: msgInfoDownloadTask.InfoFileDownloadTask.FileSize,
+					},
+				}
+
+				mtdfe.Info.Processing = msgInfoDownloadTask.TypeProcessing
+				mtdfe.Info.TaskIndex = msgInfoDownloadTask.TaskIndex
+
+				fmt.Println("->->-> send MSG 'execute completed' to Flashlight ->->->")
+				fmt.Printf("%v", mtdfe)
+
+				formatJSON, err := json.Marshal(&mtdfe)
+				if err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				}
+
+				if _, ok := acc.Addresses[remoteIP]; ok {
+					acc.ChanWebsocketTranssmition <- formatJSON
+				}
+
 			case "finished":
+
+				fmt.Println("!!!---- file UPLOADING finished ----")
 
 			}
 		}
-
 	}
 }
 
