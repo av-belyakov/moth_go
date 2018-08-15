@@ -76,6 +76,8 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 	countCycle := getCountCycle(fileStats.Size(), countByte)
 
+	fmt.Println("COUNT CYCLE =", countCycle)
+
 	for i := 0; i < countCycle; i++ {
 
 		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
@@ -98,8 +100,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			data, err := readNextBytes(file, countByte, i)
 			if err != nil {
 				if err == io.EOF {
-
-					fmt.Println(err)
+					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
 						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
@@ -116,11 +117,6 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				}
 
 				break
-			}
-
-			//fmt.Printf("%v", data)
-			if countCycle == i {
-				fmt.Println(data)
 			}
 
 			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
@@ -154,8 +150,16 @@ func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {
 		off = int64(number * nextNum)
 	}
 
-	_, err := file.ReadAt(bytes, off)
+	rb, err := file.ReadAt(bytes, off)
 	if err != nil {
+		if err == io.EOF {
+
+			//			fmt.Println("count last read byte =", rb)
+			//			fmt.Printf("%v", bytes)
+
+			return bytes[:rb], err
+		}
+
 		return nil, err
 	}
 
