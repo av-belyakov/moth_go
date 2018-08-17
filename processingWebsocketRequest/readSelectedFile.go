@@ -14,8 +14,7 @@ import (
 
 //ReadSelectedFile чтение выбранного файла
 func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
-	fmt.Println("START function ReadSelectedFile...")
-	fmt.Println(dfi.RemoteIP[pfrdf.RemoteIP])
+	fmt.Println("================= START function ReadSelectedFile... **********")
 
 	const countByte = 1024
 	fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
@@ -78,7 +77,9 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 	fmt.Println("COUNT CYCLE =", countCycle)
 
-	for i := 0; i < countCycle; i++ {
+	var fileIsReaded error
+
+	for i := 0; i <= countCycle; i++ {
 
 		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
 
@@ -97,10 +98,16 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 			break
 		default:
+			if fileIsReaded == io.EOF {
+				break
+			}
+
 			data, err := readNextBytes(file, countByte, i)
 			if err != nil {
 				if err == io.EOF {
 					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
+
+					fmt.Println("********* RESPONSE MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
 						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
@@ -122,24 +129,6 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 		}
 	}
-
-	/*
-		select {
-		case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
-			//проверка наличия выполняющейся задачи с заданным ID и выход из функции
-			return
-		default:
-			//выполнение чтение файла в бинарный канал
-			file, err := os.Open(pfrdf.PathStorageFilterFiles)
-			if err != nil {
-				sendMessageError("filesNotFound")
-			}
-			defer file.Close()
-		}
-	*/
-	/*if taskIndex <- pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile {
-		return
-	}*/
 }
 
 func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {
@@ -153,10 +142,6 @@ func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {
 	rb, err := file.ReadAt(bytes, off)
 	if err != nil {
 		if err == io.EOF {
-
-			//			fmt.Println("count last read byte =", rb)
-			//			fmt.Printf("%v", bytes)
-
 			return bytes[:rb], err
 		}
 

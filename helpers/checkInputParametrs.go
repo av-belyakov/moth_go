@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"strings"
 
 	"moth_go/configure"
 	"moth_go/saveMessageApp"
@@ -135,8 +136,10 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 		fmt.Println("-*-*-*-*-", dfi.RemoteIP[remoteIP], dfi.RemoteIP[remoteIP].ListDownloadFiles, "-*-*-*-*-")
 
 		for _, f := range listFiles {
-			dfi.RemoteIP[remoteIP].ListDownloadFiles[f.Name()] = &configure.FileInformationDownloadFiles{
-				NumberTransferAttempts: 3,
+			if (f.Size() > 24) && (!strings.Contains(f.Name(), ".txt")) {
+				dfi.RemoteIP[remoteIP].ListDownloadFiles[f.Name()] = &configure.FileInformationDownloadFiles{
+					NumberTransferAttempts: 3,
+				}
 			}
 		}
 

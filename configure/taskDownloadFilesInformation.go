@@ -1,11 +1,11 @@
 package configure
 
-//FileInformationDownloadFiles содержит подробную информацию о передаваемом файле
+//FileInformationDownloadFiles содержит количество попыток передачи файла (от 3 до 0)
 type FileInformationDownloadFiles struct {
 	NumberTransferAttempts int
 }
 
-//FileInfoinQueue информация по файлы в очереди
+//FileInfoinQueue содержит подробную информацию о передаваемом файле
 type FileInfoinQueue struct {
 	FileName string
 	FileHash string
@@ -53,4 +53,11 @@ func (dfi *DownloadFilesInformation) AddTaskDownloadFiles(remoteIP string, infoT
 //DelTaskDownloadFiles удаляет задачу для выбранного ip адреса
 func (dfi *DownloadFilesInformation) DelTaskDownloadFiles(remoteIP string) {
 	delete(dfi.RemoteIP, remoteIP)
+}
+
+//RemoveFileFromListFiles удаляет указанный файл из списка DownloadFilesInformation.RemoteIP[<ip>].ListDownloadFiles
+func (dfi *DownloadFilesInformation) RemoveFileFromListFiles(remoteIP, fileName string) {
+	if ok := dfi.HasRemoteIPDownloadFiles(remoteIP); ok {
+		delete(dfi.RemoteIP[remoteIP].ListDownloadFiles, fileName)
+	}
 }
