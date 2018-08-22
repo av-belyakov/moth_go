@@ -50,17 +50,25 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 		return hex.EncodeToString(h.Sum(nil)), nil
 	}
 
+	//удаление всей информации по выполняемой задаче и директории с отфильтрованными файлами
+	deleteTaskAndStorageDirectory := func() {
+
+		fmt.Println("++++++++ DELETE store directory", storageDirectory, ", and DELETE TASK ID")
+
+		//удаляем задачу по скачиванию файлов
+		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+	}
+
 	sendMessageExecuteFile := func() {
 		//проверяем наличие файлов для передачи
 		if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
 			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-				TaskIndex:            dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-				TypeProcessing:       "finish",
-				RemoteIP:             pfrdf.RemoteIP,
-				InfoFileDownloadTask: configure.InfoFileDownloadTask{},
+				TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+				TypeProcessing: "completed",
+				RemoteIP:       pfrdf.RemoteIP,
 			}
 
-			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+			deleteTaskAndStorageDirectory()
 
 			return
 		}

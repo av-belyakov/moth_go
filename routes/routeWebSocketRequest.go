@@ -315,8 +315,27 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 	}
 }
 
-//processMsgDownloadComingChannel обработка информации по выгружаемым файлам полученной через канал ChanInfoDownloadTask
+//processMsgDownloadComingChannel обработка информации по выгружаемым файлам, полученной через канал ChanInfoDownloadTask
 func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi *configure.DownloadFilesInformation, remoteIP string) {
+	sendMessageTypeReadyOrCompleted := func(message configure.ChanInfoDownloadTask) {
+		mtdfrf := configure.MessageTypeDownloadFilesReadyOrCompleted{
+			MessageType: "download files",
+			Info: configure.MessageTypeDownloadFilesInfoReadyOrCompleted{
+				Processing: message.TypeProcessing,
+				TaskIndex:  message.TaskIndex,
+			},
+		}
+
+		formatJSON, err := json.Marshal(&mtdfrf)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if _, ok := acc.Addresses[remoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
+		}
+	}
+
 	for {
 		msgInfoDownloadTask := <-acc.ChanInfoDownloadTaskSendMoth
 
@@ -328,25 +347,10 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 		if _, ok := acc.Addresses[remoteIP]; ok {
 			switch msgInfoDownloadTask.TypeProcessing {
 			case "ready":
-				mtdfrf := configure.MessageTypeDownloadFilesReadyOrFinished{
-					MessageType: "download files",
-					Info: configure.MessageTypeDownloadFilesInfoReadyOrFinished{
-						Processing: msgInfoDownloadTask.TypeProcessing,
-						TaskIndex:  msgInfoDownloadTask.TaskIndex,
-					},
-				}
 
 				fmt.Println("->->-> send MSG 'ready' to Flashlight ->->->")
-				fmt.Printf("%v", mtdfrf)
 
-				formatJSON, err := json.Marshal(&mtdfrf)
-				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-				}
-
-				if _, ok := acc.Addresses[remoteIP]; ok {
-					acc.ChanWebsocketTranssmition <- formatJSON
-				}
+				sendMessageTypeReadyOrCompleted(msgInfoDownloadTask)
 			case "execute":
 				mtdfe := configure.MessageTypeDownloadFilesExecute{
 					MessageType: "download files",
@@ -398,10 +402,11 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 					acc.ChanWebsocketTranssmition <- formatJSON
 				}
 
-			case "finished":
+			case "completed":
 
-				fmt.Println("!!!---- file UPLOADING finished ----")
+				fmt.Println("!!!---- file UPLOADING completed ----")
 
+				sendMessageTypeReadyOrCompleted(msgInfoDownloadTask)
 			}
 		}
 	}

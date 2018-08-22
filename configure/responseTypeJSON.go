@@ -111,24 +111,24 @@ type MessageTypeFilteringExecutedOrUnexecuted struct {
 	Info        MessageTypeFilteringExecuteOrUnexecuteInfo `json:"info"`
 }
 
-//MessageTypeDownloadFilesInfoReadyOrFinished содержит информацию передоваемую при сообщениях о готовности или завершении передачи
-type MessageTypeDownloadFilesInfoReadyOrFinished struct {
+//MessageTypeDownloadFilesInfoReadyOrCompleted содержит информацию передоваемую при сообщениях о готовности или завершении передачи
+type MessageTypeDownloadFilesInfoReadyOrCompleted struct {
 	Processing string `json:"processing"`
 	TaskIndex  string `json:"taskIndex"`
 }
 
 //MessageTypeDownloadFilesInfoExecute содержит информацию передоваемую при сообщениях о передаче информации о файле
 type MessageTypeDownloadFilesInfoExecute struct {
-	MessageTypeDownloadFilesInfoReadyOrFinished
+	MessageTypeDownloadFilesInfoReadyOrCompleted
 	FileName string `json:"fileName"`
 	FileSize int64  `json:"fileSize"`
 	FileHash string `json:"fileHash"`
 }
 
-//MessageTypeDownloadFilesReadyOrFinished применяется для отправки сообщений о готовности или завершении передачи
-type MessageTypeDownloadFilesReadyOrFinished struct {
-	MessageType string                                      `json:"messageType"`
-	Info        MessageTypeDownloadFilesInfoReadyOrFinished `json:"info"`
+//MessageTypeDownloadFilesReadyOrCompleted применяется для отправки сообщений о готовности или завершении передачи
+type MessageTypeDownloadFilesReadyOrCompleted struct {
+	MessageType string                                       `json:"messageType"`
+	Info        MessageTypeDownloadFilesInfoReadyOrCompleted `json:"info"`
 }
 
 //MessageTypeDownloadFilesExecute применяется для отправки сообщений о передаче файлов
