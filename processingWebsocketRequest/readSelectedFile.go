@@ -118,6 +118,8 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 							FileSize: fileStats.Size(),
 						},
 					}
+
+					fileIsReaded = io.EOF
 				} else {
 					sendMessageError("filesNotFound")
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
