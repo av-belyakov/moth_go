@@ -132,6 +132,13 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
 			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
 
+			filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
+
+			//удаляем непосредственно сам файл
+			if err := os.Remove(filePath); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
 			//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
 			sendMessageExecuteFile()
 

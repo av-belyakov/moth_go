@@ -175,6 +175,11 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		c.Close()
 
+		//удаляем задачу п овыгрузки файлов
+		/*if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {
+			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+		}*/
+
 		//удаляем информацию о соединении из типа acc
 		delete(acc.Addresses, remoteIP)
 		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
