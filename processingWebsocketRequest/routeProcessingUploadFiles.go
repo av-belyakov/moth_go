@@ -44,6 +44,7 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 
 			//непосредственная передача файла
 			go ReadSelectedFile(pfrdf, dfi)
+
 		case "execute success":
 			fmt.Println("***** RESIVED MSG TYPE 'execute success' =====")
 
@@ -53,6 +54,7 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 			fmt.Println("***** RESIVED MSG TYPE 'execute failure' =====")
 
 			chanSendFile <- "failure"
+
 		}
 	}
 }
