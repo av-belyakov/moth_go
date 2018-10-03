@@ -14,7 +14,7 @@ import (
 )
 
 //ProcessingUploadFiles выполняет передачу информации о файлах
-func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanSendFile <-chan configure.ChanSendFile) {
+func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanSendFile <-chan configure.ChanSendFile, chanSendStopDownloadFiles <-chan configure.ChanSendStopDownloadFiles) {
 	fmt.Println("START function ProcessingUploadFiles...")
 
 	storageDirectory := dfi.RemoteIP[pfrdf.RemoteIP].DirectoryFiltering
@@ -59,7 +59,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
 	}
 
-	sendMessageExecuteFile := func() {
+	sendMessageExecuteFile := func() bool {
 		//проверяем наличие файлов для передачи
 		if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
 			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
@@ -70,7 +70,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 			deleteTaskAndStorageDirectory()
 
-			return
+			return true
 		}
 
 		for fn := range dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles {
@@ -78,7 +78,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 			if err != nil {
 				sendMessageError("filesNotFound")
 
-				return
+				return true
 			}
 
 			fileSize := fileStats.Size()
@@ -88,7 +88,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				if err != nil {
 					sendMessageError("filesNotFound")
 
-					return
+					return true
 				}
 
 				dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue = configure.FileInfoinQueue{
@@ -113,69 +113,81 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				break
 			}
 		}
+
+		return false
 	}
 
 	//отправляем сообщение о готовности к передаче файла или сообщение о завершении передачи
 	sendMessageExecuteFile()
 
+	var fileTransmittion configure.ChanSendFile
+
 	for {
-		fileTransmittion := <-chanSendFile
+		select {
+		case fileTransmittion = <-chanSendFile:
+			fmt.Println("recived message is chan chanSendFile ", fileTransmittion)
 
-		fmt.Println("recived message is chan chanSendFile ", fileTransmittion)
+			switch fileTransmittion {
+			case "success":
+				/* удачная передача файла, следующий файл */
 
-		switch fileTransmittion {
-		case "success":
-			/* удачная передача файла, следующий файл */
+				fmt.Println("TRANSSMITION SUCCESS, NEXT FILE...")
 
-			fmt.Println("TRANSSMITION SUCCESS, NEXT FILE...")
+				filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
 
-			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
-			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
-
-			filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
-
-			//удаляем непосредственно сам файл
-			if err := os.Remove(filePath); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-			}
-
-			//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
-			sendMessageExecuteFile()
-
-		case "failure":
-			/* повторная передача до обнуления счетчика */
-
-			fmt.Println("TRANSMITTION FAILURE, REPEATEDLY")
-
-			fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
-			if _, ok := dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName]; !ok {
-				sendMessageError("filesNotFound")
-
-				return
-			}
-
-			if dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts > 0 {
-				dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts -= dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts
-
-				FileInQueue := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue
-
-				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-					TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-					TypeProcessing: "execute",
-					RemoteIP:       pfrdf.RemoteIP,
-					InfoFileDownloadTask: configure.InfoFileDownloadTask{
-						FileName: FileInQueue.FileName,
-						FileHash: FileInQueue.FileHash,
-						FileSize: FileInQueue.FileSize,
-					},
+				//удаляем непосредственно сам файл
+				if err := os.Remove(filePath); err != nil {
+					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
-			} else {
+
 				//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
 				dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
 
 				//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
-				sendMessageExecuteFile()
+				if sendMessageExecuteFile() {
+					break
+				}
+
+			case "failure":
+				/* повторная передача до обнуления счетчика */
+
+				fmt.Println("TRANSMITTION FAILURE, REPEATEDLY")
+
+				fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
+				if _, ok := dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName]; !ok {
+					sendMessageError("filesNotFound")
+				}
+
+				if dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts > 0 {
+					dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts -= dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts
+
+					FileInQueue := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue
+
+					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+						TypeProcessing: "execute",
+						RemoteIP:       pfrdf.RemoteIP,
+						InfoFileDownloadTask: configure.InfoFileDownloadTask{
+							FileName: FileInQueue.FileName,
+							FileHash: FileInQueue.FileHash,
+							FileSize: FileInQueue.FileSize,
+						},
+					}
+				} else {
+					//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
+					dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
+
+					//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
+					if sendMessageExecuteFile() {
+						break
+					}
+				}
 			}
+
+		case <-chanSendStopDownloadFiles:
+			//выход из go-подпрограммы
+			break
+
 		}
 	}
 }
