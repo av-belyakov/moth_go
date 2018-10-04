@@ -51,7 +51,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 	}
 
 	//удаление всей информации по выполняемой задаче и директории с отфильтрованными файлами
-	deleteTaskAndStorageDirectory := func() {
+	deleteTaskUploadFiles := func() {
 
 		fmt.Println("++++++++ DELETE store directory", storageDirectory, ", and DELETE TASK ID")
 
@@ -68,7 +68,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				RemoteIP:       pfrdf.RemoteIP,
 			}
 
-			deleteTaskAndStorageDirectory()
+			deleteTaskUploadFiles()
 
 			return true
 		}
@@ -88,6 +88,10 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				if err != nil {
 					sendMessageError("filesNotFound")
 
+					return true
+				}
+
+				if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
 					return true
 				}
 
@@ -111,6 +115,7 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				}
 
 				break
+				//return false
 			}
 		}
 
@@ -185,9 +190,36 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 			}
 
 		case <-chanSendStopDownloadFiles:
-			//выход из go-подпрограммы
-			break
 
+			fmt.Println("!!!!!! ВЫХОД ИЗ GO-ПОДПРОГРАММЫ processingUploadFiles ----------------")
+			/*
+				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+					TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+					TypeProcessing: "stop",
+					RemoteIP:       pfrdf.RemoteIP,
+				}
+			*/
+			//очищаем список файлов выбранных для передачи
+			dfi.ClearListFiles(pfrdf.RemoteIP)
+
+			fmt.Println("ListDownloadFiles equal 0?", len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles))
+
+			//проверяем наличие файлов для передачи
+			if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
+				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+					TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+					TypeProcessing: "completed",
+					RemoteIP:       pfrdf.RemoteIP,
+				}
+
+				deleteTaskUploadFiles()
+
+				//выход из go-подпрограммы
+				break
+			}
 		}
 	}
+
+	fmt.Println("Останов процесса выгрузки файлов, функция 'routeProcessingUploadFiles'")
+
 }

@@ -68,7 +68,7 @@ func SendErrorMessage(options Options) error {
 		"clientError":                              DetailedMessage{404, "Page not found"},
 		"unexpectedMethod":                         DetailedMessage{405, "Unexpected request method"},
 		"unexpectedValue":                          DetailedMessage{406, "Received unexpected value"},
-		"noCoincidenceID":                          DetailedMessage{409, "No coincidence processId"},
+		"noCoincidenceID":                          DetailedMessage{409, "No coincidence process ID"},
 		"limitTasks":                               DetailedMessage{410, "Exceeding the maximum limit of tasks"},
 		"userDataIncorrect":                        DetailedMessage{412, "Precondition failed"},
 		"noFilesMatchingConfiguredInterval":        DetailedMessage{413, "There are no files matching the configured interval"},

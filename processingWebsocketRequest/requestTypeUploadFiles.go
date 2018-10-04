@@ -102,6 +102,10 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 			RemoteIP:       pfrdf.RemoteIP,
 		}
 	} else {
+		if mtdf.Info.Processing == "execute success" || mtdf.Info.Processing == "execute failure" {
+			return
+		}
+
 		if err := errorMessage.SendErrorMessage(errorMessage.Options{
 			RemoteIP:   pfrdf.RemoteIP,
 			ErrMsg:     "noCoincidenceID",

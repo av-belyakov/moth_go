@@ -107,7 +107,11 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				if err == io.EOF {
 					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
-					fmt.Println("********* RESPONSE MESSAGE TYPE 'execute completed' FOR FILE", fileName)
+					fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
+
+					if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
+						break
+					}
 
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
 						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,

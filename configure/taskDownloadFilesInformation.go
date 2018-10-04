@@ -61,3 +61,10 @@ func (dfi *DownloadFilesInformation) RemoveFileFromListFiles(remoteIP, fileName 
 		delete(dfi.RemoteIP[remoteIP].ListDownloadFiles, fileName)
 	}
 }
+
+//ClearListFiles очищает список файлов предназначенных для передачи
+func (dfi *DownloadFilesInformation) ClearListFiles(remoteIP string) {
+	if ok := dfi.HasRemoteIPDownloadFiles(remoteIP); ok {
+		dfi.RemoteIP[remoteIP].ListDownloadFiles = map[string]*FileInformationDownloadFiles{}
+	}
+}
