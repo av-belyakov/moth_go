@@ -59,8 +59,6 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 
 			go RouteProcessingUploadFiles(pfrdf, dfi)
 
-			//отправляем сообщение о готовности к передаче файлов
-			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
 		} else {
 			//объединение списков файлов переданных клиентом если установлен флаг DownloadSelectedFiles = true
 			layoutListCompleted, err := helpers.MergingFileListForTaskDownloadFiles(pfrdf, mtdf, dfi)
@@ -87,9 +85,10 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 
 			go RouteProcessingUploadFiles(pfrdf, dfi)
 
-			//отправляем сообщение о готовности к передаче файлов
-			sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
 		}
+
+		//отправляем сообщение о готовности к передаче файлов
+		sendMessageReady(pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, pfrdf.RemoteIP)
 
 		return
 	}

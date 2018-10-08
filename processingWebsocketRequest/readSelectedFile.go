@@ -94,12 +94,14 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 					TypeProcessing: "cancel",
 					RemoteIP:       pfrdf.RemoteIP,
 				}
+
+				fmt.Println("+++++++++++++++++++++++ resived msg STOP, send CANCEL for Flashlight")
 			}
 
-			break
+			return
 		default:
 			if fileIsReaded == io.EOF {
-				break
+				return
 			}
 
 			data, err := readNextBytes(file, countByte, i)
@@ -110,7 +112,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 					fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
 					if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
-						break
+						return
 					}
 
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
@@ -129,7 +131,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 				}
 
-				break
+				return
 			}
 
 			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data

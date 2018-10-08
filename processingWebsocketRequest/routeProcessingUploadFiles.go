@@ -10,50 +10,87 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 	fmt.Println("*************** DOWNLOADING, function ProcessingDownloadFiles START...")
 	fmt.Println("--- 2 /////////////////////// dfi listFiles ", dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles)
 
-	//канал с информацией об успешной или не успешной передаче файла
+	//канал для сообщений об успешной или не успешной передаче файла
 	chanSendFile := make(chan configure.ChanSendFile)
 
 	//канал информирующий об остановке передачи файлов
 	chanSendStopDownloadFiles := make(chan configure.ChanSendStopDownloadFiles)
 
-	for msgInfoDownloadTask := range pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth {
+	labelStop := false
+
+DONE:
+	for {
 		fmt.Println("****ROUTING**** func ProcessingDownloadFiles package routeWebSocketRequest")
 
-		switch msgInfoDownloadTask.TypeProcessing {
-		case "stop":
-			fmt.Println("RESIVED MSG TYPE 'stop'", "drop user type 'DownloadFilesInformation'")
-
-			//останавливаем выгрузку файлов
-			chanSendStopDownloadFiles <- struct{}{}
-
-			//выход из цикла, завершение go-подпрограммы
+		if labelStop {
 			return
+		}
 
-		case "ready":
-			fmt.Println("RESIVED MSG TYPE 'ready'")
+		select {
+		case msgInfoDownloadTask := <-pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth:
 
-			//инициализация начала передачи файлов
-			go ProcessingUploadFiles(pfrdf, dfi, chanSendFile, chanSendStopDownloadFiles)
+			switch msgInfoDownloadTask.TypeProcessing {
+			case "stop":
+				fmt.Println("RESIVED MSG TYPE 'stop'", "drop user type 'DownloadFilesInformation'")
 
-		case "waiting for transfer":
-			fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
-			fmt.Println(msgInfoDownloadTask)
+				fmt.Println("!!!!!! ВЫХОД ИЗ GO-ПОДПРОГРАММЫ processingUploadFiles ----------------")
 
-			//непосредственная передача файла
-			go ReadSelectedFile(pfrdf, dfi)
+				//закрываем канал chanSendFile для выхода из go-подпрограммы 'ProcessingUploadFiles'
+				close(chanSendFile)
 
-		case "execute success":
-			fmt.Println("***** RESIVED MSG TYPE 'execute success' =====")
+				//очищаем список файлов выбранных для передачи
+				dfi.ClearListFiles(pfrdf.RemoteIP)
 
-			chanSendFile <- "success"
+				fmt.Println("ListDownloadFiles equal 0?", len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles))
 
-		case "execute failure":
-			fmt.Println("***** RESIVED MSG TYPE 'execute failure' =====")
+				//проверяем наличие файлов для передачи
+				if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
+					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+						TypeProcessing: "completed",
+						RemoteIP:       pfrdf.RemoteIP,
+					}
 
-			chanSendFile <- "failure"
+					//удаляем задачу по скачиванию файлов
+					dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+				}
+
+				labelStop = true
+
+				//выход из цикла, завершение go-подпрограммы
+				break DONE
+
+			case "ready":
+				fmt.Println("RESIVED MSG TYPE 'ready'")
+
+				//инициализация начала передачи файлов
+				go ProcessingUploadFiles(pfrdf, dfi, chanSendFile, chanSendStopDownloadFiles)
+
+			case "waiting for transfer":
+				fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
+				fmt.Printf("%v", msgInfoDownloadTask)
+
+				//непосредственная передача файла
+				go ReadSelectedFile(pfrdf, dfi)
+
+			case "execute success":
+				fmt.Println("***** RESIVED MSG TYPE 'execute success' =====")
+
+				chanSendFile <- "success"
+
+			case "execute failure":
+				fmt.Println("***** RESIVED MSG TYPE 'execute failure' =====")
+
+				chanSendFile <- "failure"
+
+			}
+		case <-chanSendStopDownloadFiles:
+			labelStop = true
+
+			break DONE
 
 		}
 	}
 
-	fmt.Println("Останов процесса выгрузки файлов, функция 'routeProcessingUploadFiles'")
+	fmt.Println("Останов процесса выгрузки файлов, функция 'routeProcessingUploadFiles' ----")
 }

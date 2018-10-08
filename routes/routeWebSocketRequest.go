@@ -437,7 +437,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
-		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "********* funcrouteWebsocketRequest *********")
+		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "********* funcRouteWebsocketRequest *********")
 
 		switch messageType.Type {
 		case "ping":
