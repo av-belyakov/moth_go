@@ -74,12 +74,18 @@ DONE:
 				go ReadSelectedFile(pfrdf, dfi)
 
 			case "execute success":
-				fmt.Println("***** RESIVED MSG TYPE 'execute success' =====")
+				fmt.Println("***** RESIVED MSG TYPE 'execute success', file name", msgInfoDownloadTask.InfoFileDownloadTask.FileName, " =====")
+
+				/*
+
+					МОЖЕТ БЫТЬ СДЕЛАТЬ ПРОВЕРКУ ПО ИМЕНИ ФАЙЛА????
+
+				*/
 
 				chanSendFile <- "success"
 
 			case "execute failure":
-				fmt.Println("***** RESIVED MSG TYPE 'execute failure' =====")
+				fmt.Println("***** RESIVED MSG TYPE 'execute failure' file name", msgInfoDownloadTask.InfoFileDownloadTask.FileName, "=====")
 
 				chanSendFile <- "failure"
 

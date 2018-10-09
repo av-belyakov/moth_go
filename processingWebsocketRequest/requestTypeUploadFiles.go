@@ -95,11 +95,30 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 
 	//для всех типов событий кроме 'start'
 	if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, mtdf.Info.TaskIndex) {
-		pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth <- configure.ChanInfoDownloadTask{
+		idt := configure.ChanInfoDownloadTask{
 			TaskIndex:      mtdf.Info.TaskIndex,
 			TypeProcessing: mtdf.Info.Processing,
 			RemoteIP:       pfrdf.RemoteIP,
 		}
+
+		if mtdf.Info.Processing == "ready" || mtdf.Info.Processing == "stop" {
+			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth <- idt
+
+			return
+		}
+
+		idt.InfoFileDownloadTask = configure.InfoFileDownloadTask{
+			FileName: mtdf.Info.FileInformation.FileName,
+			FileHash: mtdf.Info.FileInformation.FileHash,
+		}
+
+		pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth <- idt
+
+		/*pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth <- configure.ChanInfoDownloadTask{
+			TaskIndex:      mtdf.Info.TaskIndex,
+			TypeProcessing: mtdf.Info.Processing,
+			RemoteIP:       pfrdf.RemoteIP,
+		}*/
 	} else {
 		if mtdf.Info.Processing == "execute success" || mtdf.Info.Processing == "execute failure" {
 			return

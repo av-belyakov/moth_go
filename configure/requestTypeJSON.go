@@ -2,7 +2,7 @@ package configure
 
 /*
 * Описания структур принимаемых JSON сообщений
-* Версия 0.2, дата релиза 16.07.2018
+* Версия 0.3, дата релиза 09.10.2018
 * */
 
 //MessageTypeSetting содержит детальную информацию о фильтрации
@@ -30,15 +30,22 @@ type MessageTypeFilter struct {
 	Info MessageTypeFilterInfo `json:"info"`
 }
 
+//FileInformation содержит информацию о принимаемом файле
+type FileInformation struct {
+	FileName string `json:"fileName"`
+	FileHash string `json:"fileHash"`
+}
+
 //MessageTypeDownloadFilesInfo содержит подробную информацию о запросе на скачивание файлов
 type MessageTypeDownloadFilesInfo struct {
-	Processing                 string   `json:"processing"`
-	TaskIndex                  string   `json:"taskIndex"`
-	DownloadDirectoryFiles     string   `json:"downloadDirectoryFiles"`
-	DownloadSelectedFiles      bool     `json:"downloadSelectedFiles"`
-	CountDownloadSelectedFiles int      `json:"countDownloadSelectedFiles"`
-	NumberMessageParts         [2]int   `json:"numberMessageParts"`
-	ListDownloadSelectedFiles  []string `json:"listDownloadSelectedFiles"`
+	Processing                 string          `json:"processing"`
+	TaskIndex                  string          `json:"taskIndex"`
+	FileInformation            FileInformation `json:"fileInfo"`
+	DownloadDirectoryFiles     string          `json:"downloadDirectoryFiles"`
+	DownloadSelectedFiles      bool            `json:"downloadSelectedFiles"`
+	CountDownloadSelectedFiles int             `json:"countDownloadSelectedFiles"`
+	NumberMessageParts         [2]int          `json:"numberMessageParts"`
+	ListDownloadSelectedFiles  []string        `json:"listDownloadSelectedFiles"`
 }
 
 //MessageTypeDownloadFiles содержит запрос на скачивание файлов
