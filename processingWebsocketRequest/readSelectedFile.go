@@ -109,6 +109,9 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				if err == io.EOF {
 					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
+					//последний набор байт информирующий Flashlight об окончании передачи файла
+					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("file_EOF")
+
 					fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
 					if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {

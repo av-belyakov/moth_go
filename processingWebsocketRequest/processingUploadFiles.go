@@ -183,109 +183,18 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 						FileSize: FileInQueue.FileSize,
 					},
 				}
-			} else {
-				//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
-				dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
 
-				//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
-				sendMessageExecuteFile()
+				return
 			}
+
+			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
+			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
+
+			//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
+			sendMessageExecuteFile()
 		}
 	}
 
 	fmt.Println("Останов процесса выгрузки файлов, функция routeProcessingUploadFiles ++++")
-
-	/*for {
-		select {
-		case fileTransmittion = <-chanSendFile:
-			fmt.Println("recived message is chan chanSendFile ", fileTransmittion)
-
-			switch fileTransmittion {
-			case "success":
-				// удачная передача файла, следующий файл
-
-				fmt.Println("TRANSSMITION SUCCESS, NEXT FILE...")
-
-				filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
-
-				//удаляем непосредственно сам файл
-				if err := os.Remove(filePath); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
-				}
-
-				//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
-				dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
-
-				//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
-				if sendMessageExecuteFile() {
-					break
-				}
-
-			case "failure":
-				// повторная передача до обнуления счетчика
-
-				fmt.Println("TRANSMITTION FAILURE, REPEATEDLY")
-
-				fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
-				if _, ok := dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName]; !ok {
-					sendMessageError("filesNotFound")
-				}
-
-				if dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts > 0 {
-					dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts -= dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles[fileName].NumberTransferAttempts
-
-					FileInQueue := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue
-
-					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-						TypeProcessing: "execute",
-						RemoteIP:       pfrdf.RemoteIP,
-						InfoFileDownloadTask: configure.InfoFileDownloadTask{
-							FileName: FileInQueue.FileName,
-							FileHash: FileInQueue.FileHash,
-							FileSize: FileInQueue.FileSize,
-						},
-					}
-				} else {
-					//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
-					dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
-
-					//отправляем сообщение о готовности к передаче следующего файла или сообщение о завершении передачи
-					if sendMessageExecuteFile() {
-						break
-					}
-				}
-			}
-
-		case <-chanSendStopDownloadFiles:
-
-			fmt.Println("!!!!!! ВЫХОД ИЗ GO-ПОДПРОГРАММЫ processingUploadFiles ----------------")
-
-			//	pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-			//		TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-			//		TypeProcessing: "stop",
-			//		RemoteIP:       pfrdf.RemoteIP,
-			//	}
-
-			//очищаем список файлов выбранных для передачи
-			dfi.ClearListFiles(pfrdf.RemoteIP)
-
-			fmt.Println("ListDownloadFiles equal 0?", len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles))
-
-			//проверяем наличие файлов для передачи
-			if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
-				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-					TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-					TypeProcessing: "completed",
-					RemoteIP:       pfrdf.RemoteIP,
-				}
-
-				deleteTaskUploadFiles()
-
-				//выход из go-подпрограммы
-				return
-			}
-		}
-	}*/
 
 }
