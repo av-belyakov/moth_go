@@ -139,18 +139,27 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 		fmt.Println("========================= recived message is chan chanSendFile ", fileTransmittion, "==========================")
 
+		filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
+
 		switch fileTransmittion {
 		case "success":
 			/* удачная передача файла, следующий файл */
 
 			fmt.Println("TRANSSMITION SUCCESS, NEXT FILE...")
 
-			filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
-
 			//удаляем непосредственно сам файл
 			if err := os.Remove(filePath); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
+
+			//fmt.Println("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*- taskISStoped = ", dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped, "/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*")
+
+			/*if dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped {
+				//удаляем задачу по скачиванию файлов
+				dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+
+				return
+			}*/
 
 			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
 			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
@@ -186,6 +195,18 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 				return
 			}
+
+			//удаляем непосредственно сам файл
+			if err := os.Remove(filePath); err != nil {
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			}
+
+			/*if dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped {
+				//удаляем задачу по скачиванию файлов
+				dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+
+				return
+			}*/
 
 			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
 			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)

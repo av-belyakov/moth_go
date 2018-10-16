@@ -259,6 +259,10 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		}
 	}(&acc)
 
+	if e := recover(); e != nil {
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(e))
+	}
+
 	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc)
 
 	/*

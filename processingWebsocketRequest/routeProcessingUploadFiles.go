@@ -51,6 +51,8 @@ DONE:
 						RemoteIP:       pfrdf.RemoteIP,
 					}
 
+					//dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped = true
+
 					//удаляем задачу по скачиванию файлов
 					dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
 				}
