@@ -19,7 +19,6 @@ type TaskInformationDownloadFiles struct {
 	TotalCountDownloadFiles int
 	FileInQueue             FileInfoinQueue
 	SelectedFiles           bool
-	TaskIsStoped            bool
 	NumberPleasantMessages  int
 	ListDownloadFiles       map[string]*FileInformationDownloadFiles
 }

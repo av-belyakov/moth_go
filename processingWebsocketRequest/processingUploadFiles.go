@@ -152,15 +152,6 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			//fmt.Println("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*- taskISStoped = ", dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped, "/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*")
-
-			/*if dfi.RemoteIP[pfrdf.RemoteIP].TaskIsStoped {
-				//удаляем задачу по скачиванию файлов
-				dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
-
-				return
-			}*/
-
 			//удаляем уже переданный файл из списка dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles
 			dfi.RemoveFileFromListFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName)
 
