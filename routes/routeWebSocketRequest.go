@@ -407,6 +407,12 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 				fmt.Println("!!!---- file UPLOADING completed ----")
 
 				sendMessageTypeReadyOrCompleted(msgInfoDownloadTask)
+
+			case "stop":
+
+				fmt.Println("!!!---- file UPLOADING stop ----")
+
+				sendMessageTypeReadyOrCompleted(msgInfoDownloadTask)
 			}
 		}
 	}

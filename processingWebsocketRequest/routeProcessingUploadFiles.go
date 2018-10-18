@@ -13,8 +13,11 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 	//канал для сообщений об успешной или не успешной передаче файла
 	chanSendFile := make(chan configure.ChanSendFile)
 
-	//канал информирующий об остановке передачи файлов
+	//канал информирующий об остановки передачи файлов
 	chanSendStopDownloadFiles := make(chan configure.ChanSendStopDownloadFiles)
+
+	//канал для остановки чтения файла
+	chanStopReadDownloadFiles := make(chan configure.ChanStopReadDownloadFile)
 
 	labelStop := false
 
@@ -35,6 +38,8 @@ DONE:
 
 				fmt.Println("!!!!!! ВЫХОД ИЗ GO-ПОДПРОГРАММЫ processingUploadFiles ----------------")
 
+				chanStopReadDownloadFiles <- struct{}{}
+
 				//закрываем канал chanSendFile для выхода из go-подпрограммы 'ProcessingUploadFiles'
 				close(chanSendFile)
 
@@ -47,7 +52,7 @@ DONE:
 				if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
 					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
 						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-						TypeProcessing: "completed",
+						TypeProcessing: "stop",
 						RemoteIP:       pfrdf.RemoteIP,
 					}
 
@@ -71,7 +76,7 @@ DONE:
 				fmt.Printf("%v", msgInfoDownloadTask)
 
 				//непосредственная передача файла
-				go ReadSelectedFile(pfrdf, dfi)
+				go ReadSelectedFile(pfrdf, dfi, chanStopReadDownloadFiles)
 
 			case "execute success":
 				fmt.Println("***** RESIVED MSG TYPE 'execute success', file name", msgInfoDownloadTask.InfoFileDownloadTask.FileName, " =====")

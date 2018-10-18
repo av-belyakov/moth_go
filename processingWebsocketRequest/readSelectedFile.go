@@ -13,7 +13,7 @@ import (
 )
 
 //ReadSelectedFile чтение выбранного файла
-func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
+func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanStopReadDownloadFiles <-chan configure.ChanStopReadDownloadFile) {
 	fmt.Println("================= START function ReadSelectedFile... **********")
 
 	const countByte = 1024
@@ -84,6 +84,10 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
 
 		select {
+		case <-chanStopReadDownloadFiles:
+			i = countCycle
+			return
+
 		case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
 			//проверка наличия выполняющейся задачи с заданным ID и выход из функции
 			if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {

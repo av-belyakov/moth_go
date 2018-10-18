@@ -61,9 +61,9 @@ type AccessClientsConfigure struct {
 
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)
 func (clientsConfigure *ClientsConfigure) SendWsMessage(t int, v []byte) error {
-	/*	clientsConfigure.mu.Lock()
-		defer clientsConfigure.mu.Unlock()
-	*/
+	clientsConfigure.mu.Lock()
+	defer clientsConfigure.mu.Unlock()
+
 	return clientsConfigure.WsConnection.WriteMessage(t, v)
 }
 
