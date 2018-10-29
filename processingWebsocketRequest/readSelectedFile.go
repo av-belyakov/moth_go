@@ -13,7 +13,7 @@ import (
 )
 
 //ReadSelectedFile чтение выбранного файла
-func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanStopReadDownloadFiles <-chan configure.ChanStopReadDownloadFile) {
+func ReadSelectedFile(chanStopedReadFile chan<- configure.ChanStopedReadFile, pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanStopReadFile <-chan configure.ChanStopReadFile) {
 	fmt.Println("================= START function ReadSelectedFile... **********")
 
 	const countByte = 1024
@@ -43,8 +43,6 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 	}
 
 	filePath := dfi.RemoteIP[pfrdf.RemoteIP].DirectoryFiltering + "/" + fileName
-
-	fmt.Println(filePath)
 
 	fileStats, err := os.Stat(filePath)
 	if err != nil {
@@ -77,32 +75,44 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 	fmt.Println("COUNT CYCLE =", countCycle)
 
+	label := false
 	var fileIsReaded error
 
+DONE:
 	for i := 0; i <= countCycle; i++ {
 
+		if label {
+			return
+		}
 		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
 
 		select {
-		case <-chanStopReadDownloadFiles:
+		case <-chanStopReadFile:
 			i = countCycle
-			return
 
-		case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
-			//проверка наличия выполняющейся задачи с заданным ID и выход из функции
-			if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {
-				dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+			fmt.Println("... STOPED reading file, EXIT go-programm 'readSelectedFile'")
 
-				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-					TaskIndex:      taskIndex,
-					TypeProcessing: "cancel",
-					RemoteIP:       pfrdf.RemoteIP,
-				}
+			chanStopedReadFile <- struct{}{}
 
-				fmt.Println("+++++++++++++++++++++++ resived msg STOP, send CANCEL for Flashlight")
+			label = true
+
+			break DONE
+
+		/*case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
+		//проверка наличия выполняющейся задачи с заданным ID и выход из функции
+		if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {
+			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
+
+			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+				TaskIndex:      taskIndex,
+				TypeProcessing: "cancel",
+				RemoteIP:       pfrdf.RemoteIP,
 			}
 
-			return
+			fmt.Println("+++++++++++++++++++++++ resived msg STOP, send CANCEL for Flashlight")
+		}
+
+		return*/
 		default:
 			if fileIsReaded == io.EOF {
 				return
@@ -144,6 +154,8 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 		}
 	}
+
+	fmt.Println("...STOP function readSelectedFile")
 }
 
 func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {

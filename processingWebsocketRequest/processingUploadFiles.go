@@ -50,33 +50,14 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 		return hex.EncodeToString(h.Sum(nil)), nil
 	}
 
-	//удаление всей информации по выполняемой задаче и директории с отфильтрованными файлами
-	deleteTaskUploadFiles := func() {
-
-		fmt.Println("++++++++ DELETE store directory", storageDirectory, ", and DELETE TASK ID")
-
-		//удаляем задачу по скачиванию файлов
-		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
-	}
-
 	sendMessageExecuteFile := func() {
 
 		fmt.Println("......... start function sendMessageExecuteFile ..........")
 
 		//проверяем наличие файлов для передачи
 		if len(dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles) == 0 {
-			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-				TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-				TypeProcessing: "completed",
-				RemoteIP:       pfrdf.RemoteIP,
-			}
 
 			chanSendStopDownloadFiles <- struct{}{}
-
-			//закрываем канал chanSendFile для выхода из go-подпрограммы 'ProcessingUploadFiles'
-			close(chanSendFile)
-
-			deleteTaskUploadFiles()
 
 			return
 		}
@@ -135,13 +116,13 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 	//отправляем сообщение о готовности к передаче файла или сообщение о завершении передачи
 	sendMessageExecuteFile()
 
-	for fileTransmittion := range chanSendFile {
+	for resultTransmittion := range chanSendFile {
 
-		fmt.Println("========================= recived message is chan chanSendFile ", fileTransmittion, "==========================")
+		fmt.Println("========================= recived message is chan chanSendFile ", resultTransmittion, "==========================")
 
 		filePath := storageDirectory + "/" + dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
 
-		switch fileTransmittion {
+		switch resultTransmittion {
 		case "success":
 			/* удачная передача файла, следующий файл */
 
@@ -207,6 +188,6 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 		}
 	}
 
-	fmt.Println("Останов процесса выгрузки файлов, функция routeProcessingUploadFiles ++++")
+	fmt.Println("Останов процесса выгрузки файлов, функция ProcessingUploadFiles ++++")
 
 }

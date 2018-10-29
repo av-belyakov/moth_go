@@ -501,13 +501,11 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			processingWebsocketRequest.RequestTypeFilter(&prf, messageTypeFilter, ift)
 
 		case "download files":
-			fmt.Println("routing to DOWNLOAD FILES...")
-
 			if err = json.Unmarshal(message, &messageTypeDownloadFiles); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			fmt.Println("-----------------------------", messageTypeDownloadFiles, "-----------------------------")
+			fmt.Println("--routing to DOWNLOAD FILES...---", messageTypeDownloadFiles, "-----------------------------")
 
 			pfrdf.RemoteIP = remoteIP
 			pfrdf.ExternalIP = mc.ExternalIPAddress
