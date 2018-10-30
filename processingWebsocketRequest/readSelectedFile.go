@@ -13,7 +13,7 @@ import (
 )
 
 //ReadSelectedFile чтение выбранного файла
-func ReadSelectedFile(chanStopedReadFile chan<- configure.ChanStopedReadFile, pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanStopReadFile <-chan configure.ChanStopReadFile) {
+func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
 	fmt.Println("================= START function ReadSelectedFile... **********")
 
 	const countByte = 1024
@@ -75,84 +75,47 @@ func ReadSelectedFile(chanStopedReadFile chan<- configure.ChanStopedReadFile, pf
 
 	fmt.Println("COUNT CYCLE =", countCycle)
 
-	label := false
 	var fileIsReaded error
 
-DONE:
 	for i := 0; i <= countCycle; i++ {
-
-		if label {
+		if fileIsReaded == io.EOF {
 			return
 		}
-		//fmt.Println("COUNT CYCLE =", countCycle, ", num:", i)
 
-		select {
-		case <-chanStopReadFile:
-			i = countCycle
+		data, err := readNextBytes(file, countByte, i)
+		if err != nil {
+			if err == io.EOF {
+				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
-			fmt.Println("... STOPED reading file, EXIT go-programm 'readSelectedFile'")
+				//последний набор байт информирующий Flashlight об окончании передачи файла
+				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("file_EOF")
 
-			chanStopedReadFile <- struct{}{}
+				fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
-			label = true
-
-			break DONE
-
-		/*case taskIndex := <-pfrdf.AccessClientsConfigure.ChanStopReadBinaryFile:
-		//проверка наличия выполняющейся задачи с заданным ID и выход из функции
-		if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {
-			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
-
-			pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-				TaskIndex:      taskIndex,
-				TypeProcessing: "cancel",
-				RemoteIP:       pfrdf.RemoteIP,
-			}
-
-			fmt.Println("+++++++++++++++++++++++ resived msg STOP, send CANCEL for Flashlight")
-		}
-
-		return*/
-		default:
-			if fileIsReaded == io.EOF {
-				return
-			}
-
-			data, err := readNextBytes(file, countByte, i)
-			if err != nil {
-				if err == io.EOF {
-					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
-
-					//последний набор байт информирующий Flashlight об окончании передачи файла
-					pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("file_EOF")
-
-					fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
-
-					if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
-						return
-					}
-
-					pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
-						TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
-						TypeProcessing: "execute completed",
-						RemoteIP:       pfrdf.RemoteIP,
-						InfoFileDownloadTask: configure.InfoFileDownloadTask{
-							FileName: fileName,
-							FileSize: fileStats.Size(),
-						},
-					}
-
-					fileIsReaded = io.EOF
-				} else {
-					sendMessageError("filesNotFound")
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
+					return
 				}
 
-				return
+				pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskSendMoth <- configure.ChanInfoDownloadTask{
+					TaskIndex:      dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex,
+					TypeProcessing: "execute completed",
+					RemoteIP:       pfrdf.RemoteIP,
+					InfoFileDownloadTask: configure.InfoFileDownloadTask{
+						FileName: fileName,
+						FileSize: fileStats.Size(),
+					},
+				}
+
+				fileIsReaded = io.EOF
+			} else {
+				sendMessageError("filesNotFound")
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
+			return
 		}
+
+		pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 	}
 
 	fmt.Println("...STOP function readSelectedFile")

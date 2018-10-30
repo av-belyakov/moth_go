@@ -19,6 +19,7 @@ type TaskInformationDownloadFiles struct {
 	TotalCountDownloadFiles int
 	FileInQueue             FileInfoinQueue
 	SelectedFiles           bool
+	IsStoped                bool
 	NumberPleasantMessages  int
 	ListDownloadFiles       map[string]*FileInformationDownloadFiles
 }
@@ -41,6 +42,22 @@ func (dfi *DownloadFilesInformation) HasTaskDownloadFiles(remoteIP, taskIndex st
 	}
 
 	return dfi.RemoteIP[remoteIP].TaskIndex == taskIndex
+}
+
+//ChangeStopTaskDownloadFiles изменяет состояние свойства IsStoped
+func (dfi *DownloadFilesInformation) ChangeStopTaskDownloadFiles(remoteIP, taskIndex string, status bool) {
+	if dfi.HasTaskDownloadFiles(remoteIP, taskIndex) {
+		dfi.RemoteIP[remoteIP].IsStoped = status
+	}
+}
+
+//HasStopedTaskDownloadFiles проверяет состояние свойства IsStoped
+func (dfi *DownloadFilesInformation) HasStopedTaskDownloadFiles(remoteIP, taskIndex string) bool {
+	if dfi.HasTaskDownloadFiles(remoteIP, taskIndex) {
+		return dfi.RemoteIP[remoteIP].IsStoped
+	}
+
+	return false
 }
 
 //AddTaskDownloadFiles добавляет новую задачу по выгрузке файлов

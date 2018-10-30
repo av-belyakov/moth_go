@@ -141,7 +141,7 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 		if !acc.IPAddressIsExist(strings.Split(req.RemoteAddr, ":")[0]) {
 			remoteAddr := strings.Split(req.RemoteAddr, ":")[0]
 
-			fmt.Println("GET reomte IP ", remoteAddr)
+			fmt.Println("GET remote IP ", remoteAddr)
 
 			acc.Addresses[remoteAddr] = &configure.ClientsConfigure{}
 		}
@@ -335,6 +335,43 @@ func init() {
 
 	ift.TaskID = make(map[string]*configure.TaskInformation)
 	dfi.RemoteIP = make(map[string]*configure.TaskInformationDownloadFiles)
+
+	/*testFunc := func() {
+
+		fmt.Println("..START function testFunc")
+
+		chanStop := make(chan struct{})
+
+		go func() {
+			for i := 0; i < 10; i++ {
+				if i == 5 {
+					fmt.Println("i == 5, send messgae to chan 'chanStop'")
+					chanStop <- struct{}{}
+				}
+			}
+		}()
+
+		go func() {
+			fmt.Println("++++++ start ++++++")
+
+		EXIT:
+			for {
+				select {
+				case <-chanStop:
+
+					fmt.Println("--- resived messgae from chan 'chanStop'")
+
+					break EXIT
+				}
+			}
+
+			fmt.Println("****** stop ****")
+		}()
+
+		fmt.Println("..STOP function testFunc")
+	}
+
+	go testFunc()*/
 }
 
 func main() {
