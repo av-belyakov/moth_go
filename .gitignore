@@ -1,6 +1,8 @@
 logs/
 keys/moth_cert.pem
 keys/moth_private_key.pem
+moth_go
 .vscode/test
 .vscode/test.go
 .gitignore
+

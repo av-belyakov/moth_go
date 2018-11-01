@@ -32,8 +32,14 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
 	}
 
+	labelExit := false
+
 DONE:
 	for {
+		if labelExit {
+			return
+		}
+
 		fmt.Println("****ROUTING**** func ProcessingDownloadFiles package routeWebSocketRequest")
 
 		select {
@@ -46,6 +52,7 @@ DONE:
 
 				dfi.ChangeStopTaskDownloadFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, true)
 
+				labelExit = true
 			case "ready":
 				fmt.Println("RESIVED MSG TYPE 'ready'")
 

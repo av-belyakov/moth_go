@@ -264,15 +264,6 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	}
 
 	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc)
-
-	/*
-	   ПЕРЕДОВАЕМЫЙ В РЕЗУЛЬТАТЕ ОКОНЧАНИЯ ФИЛЬТРАЦИИ СПИСОК ФАЙЛОВ
-	   должен включать имя файла и его размер
-
-	   и второе - отправляемое количество обработанных файлов и количество найденных
-	   файлов БЫВАЕТ ПОВТОРЯЕТСЯ (берется из taskFilteringInformation)
-	*/
-
 }
 
 func init() {
