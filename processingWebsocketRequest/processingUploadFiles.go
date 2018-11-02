@@ -116,6 +116,8 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 	//отправляем сообщение о готовности к передаче файла или сообщение о завершении передачи
 	sendMessageExecuteFile()
 
+	fmt.Println("____ function processingUploadFiles ____, before processing chanel 'chanSendFile'")
+
 	for resultTransmittion := range chanSendFile {
 
 		fmt.Println("========================= recived message is chan chanSendFile ", resultTransmittion, "==========================")
@@ -167,6 +169,8 @@ func ProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFile
 
 				return
 			}
+
+			fmt.Println("_________________+++++_____________")
 
 			//удаляем непосредственно сам файл
 			if err := os.Remove(filePath); err != nil {

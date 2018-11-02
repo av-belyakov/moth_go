@@ -32,13 +32,16 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
 	}
 
-	labelExit := false
+	//labelExit := false
 
 DONE:
 	for {
-		if labelExit {
+		/*if labelExit {
+
+			fmt.Println("resived label 'labelExit' is", labelExit)
+
 			return
-		}
+		}*/
 
 		fmt.Println("****ROUTING**** func ProcessingDownloadFiles package routeWebSocketRequest")
 
@@ -49,10 +52,11 @@ DONE:
 			case "stop":
 
 				fmt.Println("!!!!!! отправка в канал chanStopReadFile и ВЫХОД ИЗ GO-ПОДПРОГРАММЫ processingUploadFiles ----------------")
+				fmt.Println("change label 'labelExit' on TRUE")
 
 				dfi.ChangeStopTaskDownloadFiles(pfrdf.RemoteIP, dfi.RemoteIP[pfrdf.RemoteIP].TaskIndex, true)
 
-				labelExit = true
+				//labelExit = true
 			case "ready":
 				fmt.Println("RESIVED MSG TYPE 'ready'")
 
@@ -77,6 +81,8 @@ DONE:
 
 					break DONE
 				}
+
+				fmt.Println("MSG TYPE 'execute success' -> send chanel MSG 'success'")
 
 				chanSendFile <- "success"
 

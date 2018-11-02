@@ -187,6 +187,10 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		if _, ok := acc.Addresses[remoteIP]; !ok {
 			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
 		}
+
+		//при разрыве соединения удаляем задачу по скачиванию файлов
+		dfi.DelTaskDownloadFiles(remoteIP)
+
 		fmt.Println("websocket disconnect!!!")
 	}()
 

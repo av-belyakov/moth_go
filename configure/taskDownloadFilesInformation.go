@@ -1,5 +1,9 @@
 package configure
 
+import (
+	"fmt"
+)
+
 //FileInformationDownloadFiles содержит количество попыток передачи файла (от 3 до 0)
 type FileInformationDownloadFiles struct {
 	NumberTransferAttempts int
@@ -69,6 +73,9 @@ func (dfi *DownloadFilesInformation) AddTaskDownloadFiles(remoteIP string, infoT
 
 //DelTaskDownloadFiles удаляет задачу для выбранного ip адреса
 func (dfi *DownloadFilesInformation) DelTaskDownloadFiles(remoteIP string) {
+
+	fmt.Println("удаляем задачу по скачиванию файлов")
+
 	delete(dfi.RemoteIP, remoteIP)
 }
 

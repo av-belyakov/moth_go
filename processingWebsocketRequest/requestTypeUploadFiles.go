@@ -22,6 +22,9 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 	fmt.Println("START function RequestTypeDownloadFiles...")
 
 	if mtdf.Info.Processing == "start" {
+
+		fmt.Println("+/+/+/ resived MSG type 'START'")
+
 		if (dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP)) && (!dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, mtdf.Info.TaskIndex)) {
 			if err := errorMessage.SendErrorMessage(errorMessage.Options{
 				RemoteIP:   pfrdf.RemoteIP,
@@ -95,6 +98,9 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 
 	//для всех типов событий кроме 'start'
 	if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, mtdf.Info.TaskIndex) {
+
+		fmt.Println("--///---///---- resived msg all type to not 'start'")
+
 		idt := configure.ChanInfoDownloadTask{
 			TaskIndex:      mtdf.Info.TaskIndex,
 			TypeProcessing: mtdf.Info.Processing,
