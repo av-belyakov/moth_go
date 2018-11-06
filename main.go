@@ -18,7 +18,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"moth_go/configure"
-	"moth_go/processingWebsocketRequest"
+	"moth_go/processingMessageComingChannel"
 	"moth_go/routes"
 	"moth_go/saveMessageApp"
 	"moth_go/sysInfo"
@@ -303,7 +303,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 }
 
 //processMsgFilterComingChannel обрабатывает иформацию о фильтрации получаемую из канала
-func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+/*func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
 	sendStopMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
 		MessageTypeFilteringStop := configure.MessageTypeFilteringStop{
 			MessageType: "filtering",
@@ -400,7 +400,7 @@ func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 
 	fmt.Println("**** STOP GOROUTIN ----'processMsgFilterComingChannel'-----")
 
-}
+}*/
 
 func init() {
 	//проверяем наличие tcpdump
@@ -461,7 +461,7 @@ func init() {
 	dfi.RemoteIP = make(map[string]*configure.TaskInformationDownloadFiles)
 
 	//обработка информационных сообщений о фильтрации (канал ChanInfoFilterTask)
-	go processMsgFilterComingChannel(&acc, &ift)
+	go processingMessageComingChannel.ProcessMsgFilterComingChannel(&acc, &ift)
 
 }
 
