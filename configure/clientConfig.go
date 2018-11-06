@@ -56,7 +56,6 @@ type AccessClientsConfigure struct {
 	ChanInfoDownloadTaskSendMoth    chan ChanInfoDownloadTask //канал для передачи информации ->Flashlight (выгрузка файлов)
 	ChanWebsocketTranssmition       chan []byte               //канал для отправки сообщений по websocket
 	ChanWebsocketTranssmitionBinary chan []byte               //канал для чтения бинарных файлов
-	//ChanStopReadBinaryFile          chan string               //канал в который отправляется ID задачи для остановки чтения файла
 }
 
 //SendWsMessage используется для отправки сообщений через протокол websocket (применяется Mutex)

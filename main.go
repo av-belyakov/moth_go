@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"moth_go/configure"
+	"moth_go/processingWebsocketRequest"
 	"moth_go/routes"
 	"moth_go/saveMessageApp"
 	"moth_go/sysInfo"
@@ -156,6 +158,20 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	/*
+		канал для закрытия анонимной go-подпрограммы принимающей данные
+		из каналов ChanWebsocketTranssmition и ChanWebsocketTranssmitionBinary
+	*/
+	chanEndGoroutin := make(chan struct{})
+
+	//канал для останова передачи системной информации
+	chanStopSendInfoTranssmition := make(chan struct{})
+
+	//иницилизируем канал для приема информации по скачиваемым файлам
+	acc.ChanInfoDownloadTaskGetMoth = make(chan configure.ChanInfoDownloadTask, 5)
+	//иницилизируем канал для передачи информации по скачиваемым файлам
+	acc.ChanInfoDownloadTaskSendMoth = make(chan configure.ChanInfoDownloadTask, 5)
+
 	var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -173,6 +189,10 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 	defer func() {
+		close(acc.ChanInfoDownloadTaskSendMoth)
+
+		chanEndGoroutin <- struct{}{}
+
 		c.Close()
 
 		//удаляем задачу п овыгрузки файлов
@@ -192,15 +212,18 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 		dfi.DelTaskDownloadFiles(remoteIP)
 
 		fmt.Println("websocket disconnect!!!")
+		fmt.Println("_!!!_----- COUNT GOROUTINE AFTER:", runtime.NumGoroutine())
+
 	}()
 
 	acc.Addresses[remoteIP].WsConnection = c
 
 	acc.ChanWebsocketTranssmition = make(chan []byte)
 	acc.ChanWebsocketTranssmitionBinary = make(chan []byte)
-	//acc.ChanStopReadBinaryFile = make(chan string)
 
 	go func(acc *configure.AccessClientsConfigure) {
+
+	DONE:
 		for {
 			/*message := <-acc.ChanWebsocketTranssmition
 			if _, isExist := acc.Addresses[remoteIP]; isExist {
@@ -222,6 +245,11 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 				}
+			case <-chanEndGoroutin:
+
+				chanStopSendInfoTranssmition <- struct{}{}
+
+				break DONE
 			}
 
 			/*
@@ -261,13 +289,117 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			default:
 			}*/
 		}
+
+		fmt.Println("**** STOP GOROUTIN resived chans 'ChanWebsocketTranssmition' and 'ChanWebsocketTranssmitionBinary'")
+		fmt.Println("_!!!_ COUNT GOROUTINE:", runtime.NumGoroutine())
+
 	}(&acc)
 
 	if e := recover(); e != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(e))
 	}
 
-	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc)
+	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc, chanStopSendInfoTranssmition)
+}
+
+//processMsgFilterComingChannel обрабатывает иформацию о фильтрации получаемую из канала
+func processMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+	sendStopMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
+		MessageTypeFilteringStop := configure.MessageTypeFilteringStop{
+			MessageType: "filtering",
+			Info: configure.MessageTypeFilteringStopInfo{
+				configure.FilterInfoPattern{
+					Processing: task.TypeProcessing,
+					TaskIndex:  taskIndex,
+					IPAddress:  task.RemoteIP,
+				},
+			},
+		}
+
+		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
+		fmt.Println(MessageTypeFilteringStop)
+
+		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex, "count files found:", task.CountFilesFound)
+
+		formatJSON, err := json.Marshal(&MessageTypeFilteringStop)
+		if err != nil {
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		}
+
+		if _, ok := acc.Addresses[task.RemoteIP]; ok {
+			acc.ChanWebsocketTranssmition <- formatJSON
+		}
+
+		delete(ift.TaskID, taskIndex)
+		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
+	}
+
+	for msgInfoFilterTask := range acc.ChanInfoFilterTask {
+		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
+
+			//fmt.Println("====== RESIVED FROM CHAN MSG type processing", msgInfoFilterTask.TypeProcessing, "TYPE PROCESSING SAVE TASK", task.TypeProcessing)
+			fmt.Println("====== RESIVED FROM CHAN", task.CountFilesProcessed)
+
+			task.RemoteIP = msgInfoFilterTask.RemoteIP
+			task.CountFilesFound = msgInfoFilterTask.CountFilesFound
+			task.CountFoundFilesSize = msgInfoFilterTask.CountFoundFilesSize
+			task.ProcessingFileName = msgInfoFilterTask.ProcessingFileName
+			task.StatusProcessedFile = msgInfoFilterTask.StatusProcessedFile
+
+			task.CountFilesProcessed++
+			task.CountCycleComplete++
+
+			if sourceData, ok := acc.Addresses[task.RemoteIP]; ok {
+
+				switch msgInfoFilterTask.TypeProcessing {
+				case "execute":
+					if (task.TypeProcessing == "stop") || (task.TypeProcessing == "complete") {
+						continue
+					}
+					fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", msgInfoFilterTask.TaskIndex, "count files found:", task.CountFilesFound)
+
+					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
+						MessageType: "filtering",
+						Info: configure.MessageTypeFilteringExecuteOrUnexecuteInfo{
+							configure.FilterInfoPattern{
+								IPAddress:  msgInfoFilterTask.RemoteIP,
+								TaskIndex:  msgInfoFilterTask.TaskIndex,
+								Processing: msgInfoFilterTask.TypeProcessing,
+							},
+							configure.FilterCountPattern{
+								CountFilesProcessed:   task.CountFilesProcessed,
+								CountFilesUnprocessed: task.CountFilesUnprocessed,
+								CountCycleComplete:    task.CountCycleComplete,
+								CountFilesFound:       msgInfoFilterTask.CountFilesFound,
+								CountFoundFilesSize:   msgInfoFilterTask.CountFoundFilesSize,
+							},
+							configure.InfoProcessingFile{
+								FileName:          msgInfoFilterTask.ProcessingFileName,
+								DirectoryLocation: msgInfoFilterTask.DirectoryName,
+								StatusProcessed:   msgInfoFilterTask.StatusProcessedFile,
+							},
+						},
+					}
+
+					formatJSON, err := json.Marshal(&mtfeou)
+					if err != nil {
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					}
+
+					if _, ok := acc.Addresses[task.RemoteIP]; ok {
+						acc.ChanWebsocketTranssmition <- formatJSON
+					}
+				case "complete":
+					processingWebsocketRequest.SendMsgFilteringComplite(acc, ift, msgInfoFilterTask.TaskIndex, task)
+				case "stop":
+					sendStopMsg(msgInfoFilterTask.TaskIndex, task, sourceData)
+				}
+			}
+		}
+	}
+
+	fmt.Println("**** STOP GOROUTIN ----'processMsgFilterComingChannel'-----")
+
 }
 
 func init() {
@@ -306,12 +438,9 @@ func init() {
 	acc.Addresses = make(map[string]*configure.ClientsConfigure)
 	//иницилизируем канал для передачи системной информации
 	acc.ChanInfoTranssmition = make(chan []byte)
+
 	//иницилизируем канал для передачи информации по фильтрации сет. трафика
 	acc.ChanInfoFilterTask = make(chan configure.ChanInfoFilterTask, (len(mc.CurrentDisks) * 5))
-	//иницилизируем канал для приема информации по скачиваемым файлам
-	acc.ChanInfoDownloadTaskGetMoth = make(chan configure.ChanInfoDownloadTask, 5)
-	//иницилизируем канал для передачи информации по скачиваемым файлам
-	acc.ChanInfoDownloadTaskSendMoth = make(chan configure.ChanInfoDownloadTask, 5)
 
 	//создаем канал генерирующий регулярные запросы на получение системной информации
 	ticker := time.NewTicker(time.Duration(mc.RefreshIntervalSysInfo) * time.Second)
@@ -331,42 +460,9 @@ func init() {
 	ift.TaskID = make(map[string]*configure.TaskInformation)
 	dfi.RemoteIP = make(map[string]*configure.TaskInformationDownloadFiles)
 
-	/*testFunc := func() {
+	//обработка информационных сообщений о фильтрации (канал ChanInfoFilterTask)
+	go processMsgFilterComingChannel(&acc, &ift)
 
-		fmt.Println("..START function testFunc")
-
-		chanStop := make(chan struct{})
-
-		go func() {
-			for i := 0; i < 10; i++ {
-				if i == 5 {
-					fmt.Println("i == 5, send messgae to chan 'chanStop'")
-					chanStop <- struct{}{}
-				}
-			}
-		}()
-
-		go func() {
-			fmt.Println("++++++ start ++++++")
-
-		EXIT:
-			for {
-				select {
-				case <-chanStop:
-
-					fmt.Println("--- resived messgae from chan 'chanStop'")
-
-					break EXIT
-				}
-			}
-
-			fmt.Println("****** stop ****")
-		}()
-
-		fmt.Println("..STOP function testFunc")
-	}
-
-	go testFunc()*/
 }
 
 func main() {

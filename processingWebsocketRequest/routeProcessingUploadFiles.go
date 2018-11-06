@@ -6,7 +6,7 @@ import (
 )
 
 //RouteProcessingUploadFiles осуществляет обработку запросов на скачивание файлов
-func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
+func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation, chanEndGorouting <-chan struct{}) {
 	fmt.Println("*************** DOWNLOADING, function ProcessingDownloadFiles START...")
 	fmt.Println("--- 2 /////////////////////// dfi listFiles ", dfi.RemoteIP[pfrdf.RemoteIP].ListDownloadFiles)
 
@@ -15,6 +15,11 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 
 	//канал информирующий об остановки передачи файлов
 	chanSendStopDownloadFiles := make(chan configure.ChanSendStopDownloadFiles)
+
+	defer func() {
+		close(chanSendFile)
+		close(chanSendStopDownloadFiles)
+	}()
 
 	stopOrCancelTask := func(msgType string) {
 		fmt.Println("...START func stopOrCancelTask")
@@ -26,7 +31,7 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 		}
 
 		//закрываем канал chanSendFile для выхода из go-подпрограммы 'ProcessingUploadFiles'
-		close(chanSendFile)
+		//close(chanSendFile)
 
 		//удаляем задачу по скачиванию файлов
 		dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
@@ -110,6 +115,8 @@ DONE:
 
 			break DONE
 
+		case <-chanEndGorouting:
+			break DONE
 		}
 	}
 

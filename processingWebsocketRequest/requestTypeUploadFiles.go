@@ -18,7 +18,7 @@ func sendMessageReady(chanSendMoth chan<- configure.ChanInfoDownloadTask, taskIn
 }
 
 //RequestTypeUploadFiles выполняет подготовку к выполнению задачи по выгрузки файлов
-func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) {
+func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation, chanEndGorouting <-chan struct{}) {
 	fmt.Println("START function RequestTypeDownloadFiles...")
 
 	if mtdf.Info.Processing == "start" {
@@ -60,7 +60,7 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 		if !mtdf.Info.DownloadSelectedFiles {
 			fmt.Println("+++++ START DOWNLOAD FILES without combining the lists of files ++++++")
 
-			go RouteProcessingUploadFiles(pfrdf, dfi)
+			go RouteProcessingUploadFiles(pfrdf, dfi, chanEndGorouting)
 
 		} else {
 			//объединение списков файлов переданных клиентом если установлен флаг DownloadSelectedFiles = true
@@ -86,7 +86,7 @@ func RequestTypeUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloadFil
 			}
 			fmt.Println("-----+++++ START DOWNLOAD FILES COMPARENT MESSAGE DOWNLOAD FILES +++++------")
 
-			go RouteProcessingUploadFiles(pfrdf, dfi)
+			go RouteProcessingUploadFiles(pfrdf, dfi, chanEndGorouting)
 
 		}
 
