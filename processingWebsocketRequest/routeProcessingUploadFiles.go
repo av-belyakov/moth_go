@@ -2,6 +2,7 @@ package processingWebsocketRequest
 
 import (
 	"fmt"
+
 	"moth_go/configure"
 )
 
@@ -13,12 +14,12 @@ func RouteProcessingUploadFiles(pfrdf *configure.ParametrsFunctionRequestDownloa
 	//канал для сообщений об успешной или не успешной передаче файла
 	chanSendFile := make(chan configure.ChanSendFile)
 
-	//канал информирующий об остановки передачи файлов
-	chanSendStopDownloadFiles := make(chan configure.ChanSendStopDownloadFiles)
+	//канал информирующий о завершении передачи по причине исчерпания перечня выбранных для передачи файлов
+	chanFinishDownloadFiles := make(chan struct{})
 
 	defer func() {
 		close(chanSendFile)
-		close(chanSendStopDownloadFiles)
+		close(chanFinishDownloadFiles)
 	}()
 
 	stopOrCancelTask := func(msgType string) {
@@ -48,8 +49,6 @@ DONE:
 			return
 		}*/
 
-		fmt.Println("****ROUTING**** func ProcessingDownloadFiles package routeWebSocketRequest")
-
 		select {
 		case msgInfoDownloadTask := <-pfrdf.AccessClientsConfigure.ChanInfoDownloadTaskGetMoth:
 
@@ -66,7 +65,7 @@ DONE:
 				fmt.Println("RESIVED MSG TYPE 'ready'")
 
 				//инициализация начала передачи файлов
-				go ProcessingUploadFiles(pfrdf, dfi, chanSendFile, chanSendStopDownloadFiles)
+				go ProcessingUploadFiles(chanFinishDownloadFiles, pfrdf, dfi, chanSendFile)
 
 			case "waiting for transfer":
 				fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
@@ -107,7 +106,7 @@ DONE:
 
 			}
 
-		case <-chanSendStopDownloadFiles:
+		case <-chanFinishDownloadFiles:
 
 			fmt.Println("---------- resived MSG type 'C_O_M_P_L_E_T_E_D' (func routeProcessingUploadFiles)")
 
