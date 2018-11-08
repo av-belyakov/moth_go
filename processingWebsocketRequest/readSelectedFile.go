@@ -88,7 +88,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
 				//последний набор байт информирующий Flashlight об окончании передачи файла
-				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("file_EOF")
+				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("moth say: file_EOF")
 
 				fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
