@@ -6,8 +6,8 @@ import (
 	"runtime"
 
 	"moth_go/configure"
-	"moth_go/processingWebsocketRequest"
-	"moth_go/saveMessageApp"
+	"moth_go/processingwebsocketrequest"
+	"moth_go/savemessageapp"
 )
 
 //MessageType содержит тип JSON сообщения
@@ -16,7 +16,7 @@ type MessageType struct {
 }
 
 var messageType MessageType
-var messageTypePing processingWebsocketRequest.MessageTypePing
+var messageTypePing processingwebsocketrequest.MessageTypePing
 var messageTypeFilter configure.MessageTypeFilter
 var messageTypeDownloadFiles configure.MessageTypeDownloadFiles
 
@@ -62,14 +62,14 @@ func sendFilterTaskInfoAfterPingMessage(remoteIP, ExternalIP string, acc *config
 
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 					}
 
 					if _, ok := acc.Addresses[task.RemoteIP]; ok {
 						acc.ChanWebsocketTranssmition <- formatJSON
 					}
 				case "complete":
-					processingWebsocketRequest.SendMsgFilteringComplite(acc, ift, taskIndex, task)
+					processingwebsocketrequest.SendMsgFilteringComplite(acc, ift, taskIndex, task)
 				}
 			}
 		}
@@ -89,7 +89,7 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 
 		formatJSON, err := json.Marshal(&mtdfrf)
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		if _, ok := acc.Addresses[remoteIP]; ok {
@@ -129,7 +129,7 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 
 				formatJSON, err := json.Marshal(&mtdfe)
 				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 				}
 
 				if _, ok := acc.Addresses[remoteIP]; ok {
@@ -155,7 +155,7 @@ func processMsgDownloadComingChannel(acc *configure.AccessClientsConfigure, dfi 
 
 				formatJSON, err := json.Marshal(&mtdfe)
 				if err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 				}
 
 				if _, ok := acc.Addresses[remoteIP]; ok {
@@ -199,11 +199,11 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 			break
 		}
 		if err = json.Unmarshal(message, &messageType); err != nil {
-			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		fmt.Println("************* RESIVED MESSAGE", messageType.Type, "********* funcRouteWebsocketRequest *********")
@@ -213,12 +213,12 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			fmt.Println("routing to PING...")
 
 			if err = json.Unmarshal(message, &messageTypePing); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			msgTypePong, err := messageTypePing.RequestTypePing(remoteIP, mc.ExternalIPAddress, acc)
 			if err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			if _, ok := acc.Addresses[remoteIP]; ok {
@@ -264,7 +264,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 			fmt.Println("*******-------- routing to FILTERING...")
 
 			if err = json.Unmarshal(message, &messageTypeFilter); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			fmt.Println("-----------------------------", messageTypeFilter, "-----------------------------")
@@ -278,11 +278,11 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				AccessClientsConfigure: acc,
 			}
 
-			processingWebsocketRequest.RequestTypeFilter(&prf, messageTypeFilter, ift)
+			processingwebsocketrequest.RequestTypeFilter(&prf, messageTypeFilter, ift)
 
 		case "download files":
 			if err = json.Unmarshal(message, &messageTypeDownloadFiles); err != nil {
-				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			fmt.Println("--routing to DOWNLOAD FILES...---", messageTypeDownloadFiles, "-----------------------------")
@@ -296,7 +296,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				AccessClientsConfigure: acc,
 			}
 
-			processingWebsocketRequest.RequestTypeUploadFiles(&pfrdf, messageTypeDownloadFiles, dfi, chanEndGoroutinTypeUploadFile)
+			processingwebsocketrequest.RequestTypeUploadFiles(&pfrdf, messageTypeDownloadFiles, dfi, chanEndGoroutinTypeUploadFile)
 		}
 	}
 }

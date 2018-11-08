@@ -1,4 +1,4 @@
-package errorMessage
+package errormessage
 
 import (
 	"encoding/json"

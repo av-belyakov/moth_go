@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"moth_go/configure"
-	"moth_go/saveMessageApp"
+	"moth_go/savemessageapp"
 )
 
 //CheckedFile содержит информацию о проверенном файле
@@ -212,7 +212,7 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 	if ok = checkDateTime(mtf.Info.Settings.DateTimeStart, mtf.Info.Settings.DateTimeEnd); !ok {
 		fmt.Println("CHECK DATETIME ERROR")
 
-		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received datetime")
+		_ = savemessageapp.LogMessage("error", "task filtering: incorrect received datetime")
 		return "userDataIncorrect", false
 	}
 
@@ -221,7 +221,7 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 	if !ok {
 		fmt.Println("CHECK IPADDRESS ERROR")
 
-		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect ipaddress")
+		_ = savemessageapp.LogMessage("error", "task filtering: incorrect ipaddress")
 		return "userDataIncorrect", false
 	}
 
@@ -230,13 +230,13 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 	if !ok {
 		fmt.Println("CHECK NETWORK ERROR")
 
-		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received network")
+		_ = savemessageapp.LogMessage("error", "task filtering: incorrect received network")
 		return "userDataIncorrect", false
 	}
 
 	//проверяем наличие списков ip адресов или подсетей
 	if len(listIPAddress) == 0 && len(listNetwork) == 0 {
-		_ = saveMessageApp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
+		_ = savemessageapp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
 		return "userDataIncorrect", false
 	}
 
@@ -261,7 +261,7 @@ func InputParametersForDownloadFile(remoteIP string, mtdf configure.MessageTypeD
 	if ok := checkPathStorageFilterFiles(remoteIP, mtdf, dfi); !ok {
 		fmt.Println("CHECK PATH DIRECTORY FILTERING ERROR")
 
-		_ = saveMessageApp.LogMessage("error", "task download files: incorrect received downloadDirectoryFiles")
+		_ = savemessageapp.LogMessage("error", "task download files: incorrect received downloadDirectoryFiles")
 		return "userDataIncorrect", false
 	}
 

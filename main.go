@@ -18,10 +18,10 @@ import (
 	"github.com/gorilla/websocket"
 
 	"moth_go/configure"
-	"moth_go/processingMessageComingChannel"
+	"moth_go/processingmessagecomingchannel"
 	"moth_go/routes"
-	"moth_go/saveMessageApp"
-	"moth_go/sysInfo"
+	"moth_go/savemessageapp"
+	"moth_go/sysinfo"
 )
 
 //ListAccessIPAddress хранит разрешенные для соединения ip адреса
@@ -136,7 +136,7 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 		w.WriteHeader(400)
 		w.Write(bodyHTTPResponseError)
 
-		_ = saveMessageApp.LogMessage("error", "missing or incorrect identification token (сlient ipaddress "+req.RemoteAddr+")")
+		_ = savemessageapp.LogMessage("error", "missing or incorrect identification token (сlient ipaddress "+req.RemoteAddr+")")
 	} else {
 		http.Redirect(w, req, "https://"+settingsHTTPServer.IP+":"+settingsHTTPServer.Port+"/wss", 301)
 
@@ -154,7 +154,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 	if !acc.IPAddressIsExist(remoteIP) {
 		w.WriteHeader(401)
-		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
+		_ = savemessageapp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
 		return
 	}
 
@@ -186,7 +186,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		c.Close()
 
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 	}
 	defer func() {
 		close(acc.ChanInfoDownloadTaskGetMoth)
@@ -203,7 +203,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 		//удаляем информацию о соединении из типа acc
 		delete(acc.Addresses, remoteIP)
-		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
+		_ = savemessageapp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
 		if _, ok := acc.Addresses[remoteIP]; !ok {
 			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
@@ -228,7 +228,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			/*message := <-acc.ChanWebsocketTranssmition
 			if _, isExist := acc.Addresses[remoteIP]; isExist {
 				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
-					_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+					_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 				}
 			}*/
 
@@ -236,13 +236,13 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			case messageText := <-acc.ChanWebsocketTranssmition:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
 					if err := acc.Addresses[remoteIP].SendWsMessage(1, messageText); err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 					}
 				}
 			case messageBinary := <-acc.ChanWebsocketTranssmitionBinary:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
 					if err := acc.Addresses[remoteIP].SendWsMessage(2, messageBinary); err != nil {
-						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
 					}
 				}
 			case <-chanEndGoroutin:
@@ -259,7 +259,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	}(&acc)
 
 	if e := recover(); e != nil {
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(e))
+		_ = savemessageapp.LogMessage("error", fmt.Sprint(e))
 	}
 
 	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc, chanStopSendInfoTranssmition)
@@ -294,7 +294,7 @@ func init() {
 	err = readSecondaryConfig(&mc)
 	if err != nil {
 		msg := "конфигурационный файл zsensor.conf отсутствует, используем основной конфигурационный файл"
-		_ = saveMessageApp.LogMessage("info", msg)
+		_ = savemessageapp.LogMessage("info", msg)
 		log.Println(msg)
 	}
 
@@ -315,7 +315,7 @@ func init() {
 
 				//fmt.Println("next tick get SYSTEM INFO");
 
-				go sysInfo.GetSystemInformation(acc.ChanInfoTranssmition, &mc)
+				go sysinfo.GetSystemInformation(acc.ChanInfoTranssmition, &mc)
 			}
 		}
 	}()
@@ -324,7 +324,7 @@ func init() {
 	dfi.RemoteIP = make(map[string]*configure.TaskInformationDownloadFiles)
 
 	//обработка информационных сообщений о фильтрации (канал ChanInfoFilterTask)
-	go processingMessageComingChannel.ProcessMsgFilterComingChannel(&acc, &ift)
+	go processingmessagecomingchannel.ProcessMsgFilterComingChannel(&acc, &ift)
 
 }
 
