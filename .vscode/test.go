@@ -1,15 +1,15 @@
 package main
 
 import (
-	"errors"
+	"bufio"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"net"
-	"os/exec"
-	"regexp"
+	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 /*func checkFileName(dirName string, listFiles []string, pattern *regexp.Regexp, done chan<- struct{}, answer chan<- CheckedFile) {
@@ -143,13 +143,44 @@ func getFilesList() (int, int64) {
 	return countFilesSearched, sizeFilesSearched
 }
 
-/*
-func filesList(){
-	done := make(chan struct{})
+func getHashSum(pathFile, nameFile string) (string, error) {
 
+	fmt.Println("READ FILE", pathFile+"/"+nameFile)
 
+	f, err := os.Open(pathFile + "/" + nameFile)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha1.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
-*/
+
+func writeFie(fileNameWrite, stringWrite string) error {
+	fd, err := os.OpenFile("/home/sha1_result.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	writer := bufio.NewWriter(fd)
+	defer func() {
+		if err == nil {
+			err = writer.Flush()
+		}
+	}()
+
+	if _, err = writer.WriteString(stringWrite); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func main() {
 
@@ -160,7 +191,7 @@ func main() {
 
 	//fmt.Println(math.Trunc(n))
 
-	getPatternNetwork := func(network string) (string, error) {
+	/*getPatternNetwork := func(network string) (string, error) {
 		networkTmp := strings.Split(network, "/")
 		if len(networkTmp) < 2 {
 			return "", errors.New("incorrect network mask value")
@@ -205,7 +236,7 @@ func main() {
 		symbol := strconv.QuoteRune(c)
 		return (symbol == " ")
 	})*/
-	fmt.Printf("%T %v", dateTimeStart, dateTimeStart.Year())
+	/*fmt.Printf("%T %v", dateTimeStart, dateTimeStart.Year())
 	go func() {
 
 		fmt.Println("Groution START...")
@@ -214,6 +245,43 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+	}()*/
+
+	const pathFiles = "/__FLASHLIGHT_DOWNLOAD_DIRECTORY/183-FANO_1/2018/11/05/05.11.2018_11:11_05.11.2018_17:11_d95d6ff99f2753b887b2124f0330d4b7"
+
+	listFiles, err := ioutil.ReadDir(pathFiles)
+	if err != nil {
+
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("create list files")
+
+	fd, err := os.OpenFile("/home/sha1_result.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer fd.Close()
+
+	writer := bufio.NewWriter(fd)
+	defer func() {
+		if err == nil {
+			err = writer.Flush()
+		}
 	}()
 
+	for _, f := range listFiles {
+		if (f.Size() > 24) && (!strings.Contains(f.Name(), ".txt")) {
+			hex, err := getHashSum(pathFiles, f.Name())
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			if _, err = writer.WriteString("file name: " + f.Name() + "\t" + hex + " (" + strconv.Itoa(len(hex)) + ")\n"); err != nil {
+				fmt.Println(err)
+			}
+
+		}
+	}
 }

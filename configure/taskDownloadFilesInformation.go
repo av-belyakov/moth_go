@@ -18,19 +18,40 @@ type FileInfoinQueue struct {
 
 //TaskInformationDownloadFiles информация о выполняемой задаче
 type TaskInformationDownloadFiles struct {
-	TaskIndex               string
-	DirectoryFiltering      string
-	TotalCountDownloadFiles int
-	FileInQueue             FileInfoinQueue
-	SelectedFiles           bool
-	IsStoped                bool
-	NumberPleasantMessages  int
-	ListDownloadFiles       map[string]*FileInformationDownloadFiles
+	TaskIndex                 string
+	DirectoryFiltering        string
+	TotalCountDownloadFiles   int
+	FileInQueue               FileInfoinQueue
+	StatusProcessTransmission string
+	SelectedFiles             bool
+	IsStoped                  bool
+	NumberPleasantMessages    int
+	ListDownloadFiles         map[string]*FileInformationDownloadFiles
 }
 
 //DownloadFilesInformation содержит информацию используемую для передачи файлов
 type DownloadFilesInformation struct {
 	RemoteIP map[string]*TaskInformationDownloadFiles
+}
+
+//CheckStatusProcessTransmission проверяет текущий статус задачи по передачи файлов
+func (dfi *DownloadFilesInformation) CheckStatusProcessTransmission(remoteIP, carrentStatus string) bool {
+	if ok := dfi.HasRemoteIPDownloadFiles(remoteIP); !ok {
+		return false
+	}
+
+	return dfi.RemoteIP[remoteIP].StatusProcessTransmission == carrentStatus
+}
+
+//ChangeStatusProcessTransmission меняет статус передачи задачи по передачи файлов
+func (dfi *DownloadFilesInformation) ChangeStatusProcessTransmission(remoteIP, newStatus string) bool {
+	if ok := dfi.HasRemoteIPDownloadFiles(remoteIP); !ok {
+		return false
+	}
+
+	dfi.RemoteIP[remoteIP].StatusProcessTransmission = newStatus
+
+	return true
 }
 
 //HasRemoteIPDownloadFiles проверяет наличие ip адреса с которого выполнялись запросы по скачиванию файлов

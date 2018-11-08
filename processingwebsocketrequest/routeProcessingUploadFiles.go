@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"moth_go/configure"
+	"moth_go/savemessageapp"
 )
 
 //RouteProcessingUploadFiles осуществляет обработку запросов на скачивание файлов
@@ -64,12 +65,17 @@ DONE:
 			case "ready":
 				fmt.Println("RESIVED MSG TYPE 'ready'")
 
+				//изменяем статус процесса передачи файлов
+				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "ready")
+
 				//инициализация начала передачи файлов
 				go ProcessingUploadFiles(chanFinishDownloadFiles, pfrdf, dfi, chanSendFile)
 
 			case "waiting for transfer":
 				fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
 				fmt.Printf("%v", msgInfoDownloadTask)
+
+				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer")
 
 				//непосредственная передача файла
 				go ReadSelectedFile(pfrdf, dfi)
@@ -86,7 +92,16 @@ DONE:
 					break DONE
 				}
 
+				//проверяем статус процесса передачи файлов
+				if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
+					_ = savemessageapp.LogMessage("info", "the status of the task is not in the order of its order")
+
+					break DONE
+				}
+
 				fmt.Println("MSG TYPE 'execute success' -> send chanel MSG 'success'")
+
+				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute success")
 
 				chanSendFile <- "success"
 
@@ -102,8 +117,16 @@ DONE:
 					break DONE
 				}
 
-				chanSendFile <- "failure"
+				//проверяем статус процесса передачи файлов
+				if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
+					_ = savemessageapp.LogMessage("info", "the status of the task is not in the order of its order")
 
+					break DONE
+				}
+
+				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute failure")
+
+				chanSendFile <- "failure"
 			}
 
 		case <-chanFinishDownloadFiles:
