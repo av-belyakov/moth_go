@@ -77,6 +77,8 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 	var fileIsReaded error
 
+	strHash := []byte(dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileHash)
+
 	for i := 0; i <= countCycle; i++ {
 		if fileIsReaded == io.EOF {
 			return
@@ -85,10 +87,12 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 		data, err := readNextBytes(file, countByte, i)
 		if err != nil {
 			if err == io.EOF {
+				data = append(strHash, data...)
 				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 
+				newStrHash := append(strHash, []byte(" moth say: file_EOF")...)
 				//последний набор байт информирующий Flashlight об окончании передачи файла
-				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- []byte("moth say: file_EOF")
+				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- newStrHash
 
 				fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
@@ -115,6 +119,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			return
 		}
 
+		data = append(strHash, data...)
 		pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 	}
 

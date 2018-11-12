@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"moth_go/configure"
-	"moth_go/savemessageapp"
 )
 
 //RouteProcessingUploadFiles осуществляет обработку запросов на скачивание файлов
@@ -66,7 +65,7 @@ DONE:
 				fmt.Println("RESIVED MSG TYPE 'ready'")
 
 				//изменяем статус процесса передачи файлов
-				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "ready")
+				//dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "ready")
 
 				//инициализация начала передачи файлов
 				go ProcessingUploadFiles(chanFinishDownloadFiles, pfrdf, dfi, chanSendFile)
@@ -75,7 +74,7 @@ DONE:
 				fmt.Println("RESIVED MSG TYPE 'waiting for transfer'")
 				fmt.Printf("%v", msgInfoDownloadTask)
 
-				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer")
+				//dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer")
 
 				//непосредственная передача файла
 				go ReadSelectedFile(pfrdf, dfi)
@@ -93,15 +92,17 @@ DONE:
 				}
 
 				//проверяем статус процесса передачи файлов
-				if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
+				/*if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
 					_ = savemessageapp.LogMessage("info", "the status of the task is not in the order of its order")
 
+										stopOrCancelTask("stop")
+
 					break DONE
-				}
+				}*/
 
 				fmt.Println("MSG TYPE 'execute success' -> send chanel MSG 'success'")
 
-				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute success")
+				//dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute success")
 
 				chanSendFile <- "success"
 
@@ -118,13 +119,15 @@ DONE:
 				}
 
 				//проверяем статус процесса передачи файлов
-				if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
+				/*if !dfi.CheckStatusProcessTransmission(pfrdf.RemoteIP, "waiting for transfer") {
 					_ = savemessageapp.LogMessage("info", "the status of the task is not in the order of its order")
 
-					break DONE
-				}
+					stopOrCancelTask("stop")
 
-				dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute failure")
+					break DONE
+				}*/
+
+				//dfi.ChangeStatusProcessTransmission(pfrdf.RemoteIP, "execute failure")
 
 				chanSendFile <- "failure"
 			}
