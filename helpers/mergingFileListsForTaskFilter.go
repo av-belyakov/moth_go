@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"errors"
-	"fmt"
 
 	"moth_go/configure"
 )
@@ -23,9 +22,6 @@ func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *
 
 		ift.TaskID[mtf.Info.TaskIndex].NumberPleasantMessages++
 
-		fmt.Println("!!!!!! FERST ELEMENT")
-		fmt.Println(ift.TaskID[mtf.Info.TaskIndex].TotalNumberFilesFilter)
-
 		return false, nil
 	}
 
@@ -38,12 +34,6 @@ func MergingFileListForTaskFilter(ift *configure.InformationFilteringTask, mtf *
 	}
 
 	if mtf.Info.Settings.CountPartsIndexFiles[0] == mtf.Info.Settings.CountPartsIndexFiles[1] {
-		fmt.Println("!!!!!! LAST ELEMENT")
-
-		for folder, value := range ift.TaskID[mtf.Info.TaskIndex].ListFilesFilter {
-			fmt.Println("+===+ FOLDER ", folder, " count files = ", len(value))
-		}
-
 		return true, nil
 	}
 

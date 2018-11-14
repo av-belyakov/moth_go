@@ -30,9 +30,6 @@ func CheckFileName(fileName, patternName string) error {
 		return errors.New("function 'CheckFileName': not found the pattern for the regular expression")
 	}
 
-	fmt.Println("START function CheckFileName...")
-	fmt.Println("fileName:", fileName, "patternName:", pattern)
-
 	patterCheckFileName := regexp.MustCompile(pattern)
 	if ok := patterCheckFileName.MatchString(fileName); ok {
 		return nil
@@ -95,21 +92,13 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 
 	patternCompile, err := regexp.Compile(regexpPatterns["pathDirectoryStoryFilesFiltering"])
 	if err != nil {
-
-		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 1")
 		return false
 	}
-
-	fmt.Println("---- function checkPathStorageFilterFiles CHECK 1 SUCCESS")
 
 	ok := patternCompile.MatchString(mtdf.Info.DownloadDirectoryFiles)
 	if !ok {
-
-		fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 2", mtdf.Info.DownloadDirectoryFiles)
 		return false
 	}
-
-	fmt.Println("---- function checkPathStorageFilterFiles CHECK 2 SUCCESS")
 
 	//если это не первое сообщение типа start (при передачи списка файлов необходимых дляскачивания)
 	if mtdf.Info.NumberMessageParts[0] > 0 {
@@ -127,13 +116,8 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 	if !mtdf.Info.DownloadSelectedFiles {
 		listFiles, err := ioutil.ReadDir(mtdf.Info.DownloadDirectoryFiles)
 		if err != nil {
-
-			fmt.Println("---- function checkPathStorageFilterFiles CHECK ERROR 3")
 			return false
 		}
-
-		fmt.Println("---- function checkPathStorageFilterFiles CHECK 3 SUCCESS")
-		fmt.Println("-*-*-*-*-", dfi.RemoteIP[remoteIP], dfi.RemoteIP[remoteIP].ListDownloadFiles, "-*-*-*-*-")
 
 		for _, f := range listFiles {
 			if (f.Size() > 24) && (!strings.Contains(f.Name(), ".txt")) {
@@ -142,9 +126,6 @@ func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDown
 				}
 			}
 		}
-
-		fmt.Println("---- function checkPathStorageFilterFiles CREATE LIST FILES")
-
 	}
 
 	return true
@@ -159,8 +140,6 @@ func awaitCompletion(done <-chan struct{}, countCycle int, answer chan CheckedFi
 
 func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisks []string) (map[string][]string, bool) {
 	patterCheckFileName := regexp.MustCompile(regexpPatterns["fileName"])
-
-	fmt.Println("function checkNameFilesForFiltering START...")
 
 	newListFilesFilter := map[string][]string{}
 	done := make(chan struct{}, cap(currentDisks))
@@ -198,45 +177,40 @@ func checkNameFilesForFiltering(listFilesFilter map[string][]string, currentDisk
 
 //InputParametrsForFiltering выполняет ряд проверок валидности полученных от пользователя данных перед выполнением фильтрации
 func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *configure.MessageTypeFilter) (string, bool) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	var ok bool
 
 	//fmt.Printf("%v", mtf.Info.Settings)
 
 	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountPartsIndexFiles[0] > 0) {
-		fmt.Println("++ +++ ++++ Message type is OFF or use INDEX and seconds chunk --- --- ---")
-
 		return "", true
 	}
 
 	//проверяем дату и время
 	if ok = checkDateTime(mtf.Info.Settings.DateTimeStart, mtf.Info.Settings.DateTimeEnd); !ok {
-		fmt.Println("CHECK DATETIME ERROR")
-
-		_ = savemessageapp.LogMessage("error", "task filtering: incorrect received datetime")
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received datetime")
 		return "userDataIncorrect", false
 	}
 
 	//проверяем IP адреса
 	listIPAddress, ok := checkNetworkOrIPAddress("IPAddress", mtf.Info.Settings.IPAddress)
 	if !ok {
-		fmt.Println("CHECK IPADDRESS ERROR")
-
-		_ = savemessageapp.LogMessage("error", "task filtering: incorrect ipaddress")
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect ipaddress")
 		return "userDataIncorrect", false
 	}
 
 	//проверяем диапазоны сетей
 	listNetwork, ok := checkNetworkOrIPAddress("Network", mtf.Info.Settings.Network)
 	if !ok {
-		fmt.Println("CHECK NETWORK ERROR")
-
-		_ = savemessageapp.LogMessage("error", "task filtering: incorrect received network")
+		_ = saveMessageApp.LogMessage("error", "task filtering: incorrect received network")
 		return "userDataIncorrect", false
 	}
 
 	//проверяем наличие списков ip адресов или подсетей
 	if len(listIPAddress) == 0 && len(listNetwork) == 0 {
-		_ = savemessageapp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
+		_ = saveMessageApp.LogMessage("error", "task filtering: an empty list of addresses or networks found")
 		return "userDataIncorrect", false
 	}
 
@@ -257,11 +231,12 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 
 //InputParametersForDownloadFile выполняется проверка валидности переданных пользователем данных
 func InputParametersForDownloadFile(remoteIP string, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) (string, bool) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	//проверка наличия директории с которой выполняется выгрузка файлов
 	if ok := checkPathStorageFilterFiles(remoteIP, mtdf, dfi); !ok {
-		fmt.Println("CHECK PATH DIRECTORY FILTERING ERROR")
-
-		_ = savemessageapp.LogMessage("error", "task download files: incorrect received downloadDirectoryFiles")
+		_ = saveMessageApp.LogMessage("error", "task download files: incorrect received downloadDirectoryFiles")
 		return "userDataIncorrect", false
 	}
 

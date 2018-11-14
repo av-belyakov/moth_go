@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"runtime"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -108,6 +108,9 @@ func readSecondaryConfig(mc *configure.MothConfig) error {
 
 //HandlerRequest обработчик HTTPS запроса к "/"
 func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWriter, req *http.Request) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	bodyHTTPResponseError := []byte(`<!DOCTYPE html>
 		<html lang="en"
 		<head><meta charset="utf-8"><title>Server Nginx</title></head>
@@ -136,14 +139,12 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 		w.WriteHeader(400)
 		w.Write(bodyHTTPResponseError)
 
-		_ = savemessageapp.LogMessage("error", "missing or incorrect identification token (сlient ipaddress "+req.RemoteAddr+")")
+		_ = saveMessageApp.LogMessage("error", "missing or incorrect identification token (сlient ipaddress "+req.RemoteAddr+")")
 	} else {
 		http.Redirect(w, req, "https://"+settingsHTTPServer.IP+":"+settingsHTTPServer.Port+"/wss", 301)
 
 		if !acc.IPAddressIsExist(strings.Split(req.RemoteAddr, ":")[0]) {
 			remoteAddr := strings.Split(req.RemoteAddr, ":")[0]
-
-			fmt.Println("GET remote IP ", remoteAddr)
 
 			acc.Addresses[remoteAddr] = &configure.ClientsConfigure{}
 		}
@@ -151,10 +152,13 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 }
 
 func serverWss(w http.ResponseWriter, req *http.Request) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
 	if !acc.IPAddressIsExist(remoteIP) {
 		w.WriteHeader(401)
-		_ = savemessageapp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
+		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
 		return
 	}
 
@@ -186,7 +190,7 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		c.Close()
 
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 	defer func() {
 		close(acc.ChanInfoDownloadTaskGetMoth)
@@ -196,25 +200,18 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 		c.Close()
 
-		//удаляем задачу п овыгрузки файлов
-		/*if dfi.HasTaskDownloadFiles(pfrdf.RemoteIP, taskIndex) {
-			dfi.DelTaskDownloadFiles(pfrdf.RemoteIP)
-		}*/
-
 		//удаляем информацию о соединении из типа acc
 		delete(acc.Addresses, remoteIP)
-		_ = savemessageapp.LogMessage("info", "disconnect for IP address "+remoteIP)
+		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
-		if _, ok := acc.Addresses[remoteIP]; !ok {
-			fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
-		}
+		/*		if _, ok := acc.Addresses[remoteIP]; !ok {
+				fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
+			}*/
 
 		//при разрыве соединения удаляем задачу по скачиванию файлов
 		dfi.DelTaskDownloadFiles(remoteIP)
 
-		fmt.Println("websocket disconnect!!!")
-		fmt.Println("_!!!_----- COUNT GOROUTINE AFTER:", runtime.NumGoroutine())
-
+		fmt.Println("websocket disconnect whis ip", remoteIP)
 	}()
 
 	acc.Addresses[remoteIP].WsConnection = c
@@ -225,24 +222,17 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	go func(acc *configure.AccessClientsConfigure) {
 	DONE:
 		for {
-			/*message := <-acc.ChanWebsocketTranssmition
-			if _, isExist := acc.Addresses[remoteIP]; isExist {
-				if err := acc.Addresses[remoteIP].SendWsMessage(1, message); err != nil {
-					_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
-				}
-			}*/
-
 			select {
 			case messageText := <-acc.ChanWebsocketTranssmition:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
 					if err := acc.Addresses[remoteIP].SendWsMessage(1, messageText); err != nil {
-						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 				}
 			case messageBinary := <-acc.ChanWebsocketTranssmitionBinary:
 				if _, isExist := acc.Addresses[remoteIP]; isExist {
 					if err := acc.Addresses[remoteIP].SendWsMessage(2, messageBinary); err != nil {
-						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 				}
 			case <-chanEndGoroutin:
@@ -253,19 +243,20 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 
-		fmt.Println("**** STOP GOROUTIN resived chans 'ChanWebsocketTranssmition' and 'ChanWebsocketTranssmitionBinary'")
-		fmt.Println("_!!!_ COUNT GOROUTINE:", runtime.NumGoroutine())
-
+		//		fmt.Println("_!!!_ COUNT GOROUTINE:", runtime.NumGoroutine())
 	}(&acc)
 
 	if e := recover(); e != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(e))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(e))
 	}
 
 	routes.RouteWebSocketRequest(remoteIP, &acc, &ift, &dfi, &mc, chanStopSendInfoTranssmition)
 }
 
 func init() {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	//проверяем наличие tcpdump
 	func() {
 		stdout, err := exec.Command("sh", "-c", "whereis tcpdump").Output()
@@ -283,18 +274,29 @@ func init() {
 	}()
 
 	var err error
+
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//читаем основной конфигурационный файл в формате JSON
-	err = readMainConfig("config.json", &mc)
+	err = readMainConfig(dir+"/config.json", &mc)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	mc.RootDir = dir + "/"
+
+	mc.PathKeyFile = mc.RootDir + mc.PathKeyFile
+	mc.PathCertFile = mc.RootDir + mc.PathCertFile
+
 	//читаем вспомогательный конфигурационный файл в формате INI
 	err = readSecondaryConfig(&mc)
 	if err != nil {
 		msg := "конфигурационный файл zsensor.conf отсутствует, используем основной конфигурационный файл"
-		_ = savemessageapp.LogMessage("info", msg)
+		_ = saveMessageApp.LogMessage("info", msg)
 		log.Println(msg)
 	}
 
@@ -312,9 +314,6 @@ func init() {
 		for {
 			select {
 			case <-ticker.C:
-
-				//fmt.Println("next tick get SYSTEM INFO");
-
 				go sysinfo.GetSystemInformation(acc.ChanInfoTranssmition, &mc)
 			}
 		}
@@ -325,7 +324,6 @@ func init() {
 
 	//обработка информационных сообщений о фильтрации (канал ChanInfoFilterTask)
 	go processingmessagecomingchannel.ProcessMsgFilterComingChannel(&acc, &ift)
-
 }
 
 func main() {
@@ -337,7 +335,7 @@ func main() {
 	settingsHTTPServer.Token = mc.AuthenticationToken
 
 	/* инициализируем HTTPS сервер */
-	log.Println("The HTTPS server is running ipaddress " + settingsHTTPServer.IP + ", port " + settingsHTTPServer.Port + "\n")
+	log.Println("The HTTPS server is running on ip address " + settingsHTTPServer.IP + ", port " + settingsHTTPServer.Port + "\n")
 
 	http.HandleFunc("/", settingsHTTPServer.HandlerRequest)
 	http.HandleFunc("/wss", serverWss)

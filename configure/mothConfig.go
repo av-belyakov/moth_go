@@ -7,6 +7,7 @@ package configure
 
 //MothConfig хранит настройки из конфигурационного файла приложения
 type MothConfig struct {
+	RootDir                   string
 	PathMainConfigurationFile string   `json:"pathMainConfigurationFile"`
 	AuthenticationToken       string   `json:"authenticationToken"`
 	ExternalIPAddress         string   `json:"externalIPAddress"`
@@ -17,4 +18,5 @@ type MothConfig struct {
 	CurrentDisks              []string `json:"currentDisks"`
 	PathStorageFilterFiles    string   `json:"pathStorageFilterFiles"`
 	RefreshIntervalSysInfo    int      `json:"refreshIntervalSysInfo"`
+	PathLogFiles              string   `json:"pathLogFiles"`
 }

@@ -71,7 +71,13 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 	}
 	sort.Ints(array)
 
-	result <- DateTimeRange{array[0], array[len(array)-1], nil}
+	var min, max int
+	if len(array) > 0 {
+		min = array[0]
+		max = array[len(array)-1]
+	}
+
+	result <- DateTimeRange{min, max, nil}
 }
 
 //CreateFilesRange формирует временный интервал файлов хранящихся на дисках

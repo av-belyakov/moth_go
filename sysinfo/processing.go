@@ -11,6 +11,9 @@ import (
 
 //GetSystemInformation позволяет получить системную информацию
 func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	var sysInfo configure.SysInfo
 	var done = make(chan struct{})
 	var errorMessage = make(chan error)
@@ -25,18 +28,18 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 	case <-done:
 		break
 	case <-errorMessage:
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(errorMessage))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(errorMessage))
 		break
 	}
 
 	//загрузка оперативной памяти
 	if err := sysInfo.CreateRandomAccessMemory(); err != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
 	//загрузка ЦПУ
 	if err := sysInfo.CreateLoadCPU(); err != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
 	//нагрузка на сетевых интерфейсах
@@ -50,7 +53,7 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 
 	//свободное дисковое пространство
 	if err := sysInfo.CreateDiskSpace(); err != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
 	sysInfo.Info.IPAddress = mc.ExternalIPAddress
@@ -59,10 +62,8 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 
 	formatJSON, err := json.Marshal(sysInfo)
 	if err != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
-
-	//fmt.Println("CREATE INFORMATION MESSAGE ----")
 
 	out <- formatJSON
 }

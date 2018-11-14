@@ -23,5 +23,7 @@
     "pathStorageFilterFiles": "/home/TRAFFIC_FILTERS",
     "pathStorageFilterFiles_comments": "местоположение файлов полученных в результате фильтрации",
     "refreshIntervalSysInfo": 10,
-    "refreshIntervalSysInfo_comments": "интервал обнавления системной информации"
+    "refreshIntervalSysInfo_comments": "интервал обнавления системной информации",
+    "pathLogFiles": "/var/log",
+    "pathLogFiles_comments": "место расположение лог-файла приложения"
 }

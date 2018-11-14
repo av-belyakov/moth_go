@@ -11,6 +11,9 @@ import (
 
 //ProcessMsgFilterComingChannel обрабатывает иформацию о фильтрации получаемую из канала
 func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *configure.InformationFilteringTask) {
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	sendStopMsg := func(taskIndex string, task *configure.TaskInformation, sourceData *configure.ClientsConfigure) {
 		MessageTypeFilteringStop := configure.MessageTypeFilteringStop{
 			MessageType: "filtering",
@@ -23,14 +26,9 @@ func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			},
 		}
 
-		fmt.Println("--------------------- FILTERING COMPLETE -------------------")
-		fmt.Println(MessageTypeFilteringStop)
-
-		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex, "count files found:", task.CountFilesFound)
-
 		formatJSON, err := json.Marshal(&MessageTypeFilteringStop)
 		if err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		if _, ok := acc.Addresses[task.RemoteIP]; ok {
@@ -38,15 +36,11 @@ func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 		}
 
 		delete(ift.TaskID, taskIndex)
-		_ = savemessageapp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
+		_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
 	}
 
 	for msgInfoFilterTask := range acc.ChanInfoFilterTask {
 		if task, ok := ift.TaskID[msgInfoFilterTask.TaskIndex]; ok {
-
-			//fmt.Println("====== RESIVED FROM CHAN MSG type processing", msgInfoFilterTask.TypeProcessing, "TYPE PROCESSING SAVE TASK", task.TypeProcessing)
-			fmt.Println("====== RESIVED FROM CHAN", task.CountFilesProcessed)
-
 			task.RemoteIP = msgInfoFilterTask.RemoteIP
 			task.CountFilesFound = msgInfoFilterTask.CountFilesFound
 			task.CountFoundFilesSize = msgInfoFilterTask.CountFoundFilesSize
@@ -63,7 +57,6 @@ func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 					if (task.TypeProcessing == "stop") || (task.TypeProcessing == "complete") {
 						continue
 					}
-					fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", msgInfoFilterTask.TaskIndex, "count files found:", task.CountFilesFound)
 
 					mtfeou := configure.MessageTypeFilteringExecutedOrUnexecuted{
 						MessageType: "filtering",
@@ -90,7 +83,7 @@ func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 
 					formatJSON, err := json.Marshal(&mtfeou)
 					if err != nil {
-						_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+						_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 					}
 
 					if _, ok := acc.Addresses[task.RemoteIP]; ok {
@@ -104,7 +97,4 @@ func ProcessMsgFilterComingChannel(acc *configure.AccessClientsConfigure, ift *c
 			}
 		}
 	}
-
-	fmt.Println("**** STOP GOROUTIN ----'processMsgFilterComingChannel'-----")
-
 }

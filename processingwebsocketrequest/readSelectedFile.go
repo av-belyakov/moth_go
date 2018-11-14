@@ -14,7 +14,8 @@ import (
 
 //ReadSelectedFile чтение выбранного файла
 func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, dfi *configure.DownloadFilesInformation) {
-	fmt.Println("================= START function ReadSelectedFile... **********")
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
 
 	const countByte = 1024
 	fileName := dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileName
@@ -27,16 +28,13 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 			ExternalIP: pfrdf.ExternalIP,
 			Wsc:        pfrdf.AccessClientsConfigure.Addresses[pfrdf.RemoteIP].WsConnection,
 		}); err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 		return
 	}
 
 	//проверяем имя файла на соответствие регулярному выражению
 	if err := helpers.CheckFileName(fileName, "fileName"); err != nil {
-
-		fmt.Println("... ERROR function ReadSelectedFile - ", err)
-
 		sendMessageError("unexpectedValue")
 
 		return
@@ -46,18 +44,15 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 
 	fileStats, err := os.Stat(filePath)
 	if err != nil {
-
-		fmt.Println(err)
-
 		sendMessageError("filesNotFound")
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		return
 	}
 
 	if fileStats.Size() <= 24 {
 		sendMessageError("filesNotFound")
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		return
 	}
@@ -65,19 +60,16 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 	file, err := os.Open(filePath)
 	if err != nil {
 		sendMessageError("filesNotFound")
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 
 		return
 	}
 	defer file.Close()
 
-	countCycle := getCountCycle(fileStats.Size(), countByte)
-
-	fmt.Println("COUNT CYCLE =", countCycle)
-
 	var fileIsReaded error
 
 	strHash := []byte(dfi.RemoteIP[pfrdf.RemoteIP].FileInQueue.FileHash)
+	countCycle := getCountCycle(fileStats.Size(), countByte)
 
 	for i := 0; i <= countCycle; i++ {
 		if fileIsReaded == io.EOF {
@@ -93,8 +85,6 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				newStrHash := append(strHash, []byte(" moth say: file_EOF")...)
 				//последний набор байт информирующий Flashlight об окончании передачи файла
 				pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- newStrHash
-
-				fmt.Println("********* response MESSAGE TYPE 'execute completed' FOR FILE", fileName)
 
 				if found := dfi.HasRemoteIPDownloadFiles(pfrdf.RemoteIP); !found {
 					return
@@ -113,7 +103,7 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 				fileIsReaded = io.EOF
 			} else {
 				sendMessageError("filesNotFound")
-				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			return
@@ -122,8 +112,6 @@ func ReadSelectedFile(pfrdf *configure.ParametrsFunctionRequestDownloadFiles, df
 		data = append(strHash, data...)
 		pfrdf.AccessClientsConfigure.ChanWebsocketTranssmitionBinary <- data
 	}
-
-	fmt.Println("...STOP function readSelectedFile")
 }
 
 func readNextBytes(file *os.File, number, nextNum int) ([]byte, error) {

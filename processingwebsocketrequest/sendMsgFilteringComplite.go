@@ -16,6 +16,9 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 	const sizeChunk = 30
 	var messageTypeFilteringCompleteFirstPart configure.MessageTypeFilteringCompleteFirstPart
 
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
+
 	//получить список найденных, в результате фильтрации, файлов
 	getListFoundFiles := func(directoryResultFilter string) (list []configure.FoundFilesInfo, sizeFiles int64, err error) {
 		files, err := ioutil.ReadDir(directoryResultFilter)
@@ -55,7 +58,7 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 
 	listFoundFiles, sizeFiles, err := getListFoundFiles(task.DirectoryFiltering)
 	if err != nil {
-		_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
 	messageTypeFilteringCompleteFirstPart = configure.MessageTypeFilteringCompleteFirstPart{
@@ -77,15 +80,9 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 	}
 
 	if len(listFoundFiles) == 0 {
-
-		fmt.Println("--------------------- FILTERING COMPLETE (FILES NOT FOUND) -------------------")
-		fmt.Println(messageTypeFilteringCompleteFirstPart)
-
-		fmt.Println("++++++ job status: ", task.TypeProcessing, ", task ID:", taskIndex, "count files found:", task.CountFilesFound)
-
 		formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
 		if err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		if _, ok := acc.Addresses[task.RemoteIP]; ok {
@@ -100,7 +97,7 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 		//отправляется первая часть сообщения
 		formatJSON, err := json.Marshal(&messageTypeFilteringCompleteFirstPart)
 		if err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 
 		if _, ok := acc.Addresses[task.RemoteIP]; ok {
@@ -136,7 +133,7 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 
 			formatJSON, err := json.Marshal(&messageTypeFilteringCompleteSecondPart)
 			if err != nil {
-				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
 			if _, ok := acc.Addresses[task.RemoteIP]; ok {
@@ -146,5 +143,5 @@ func SendMsgFilteringComplite(acc *configure.AccessClientsConfigure, ift *config
 	}
 
 	delete(ift.TaskID, taskIndex)
-	_ = savemessageapp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
+	_ = saveMessageApp.LogMessage("info", task.TypeProcessing+" of the filter task execution with ID"+taskIndex)
 }

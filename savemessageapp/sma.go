@@ -3,16 +3,67 @@ package savemessageapp
 import (
 	"bufio"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func createLogsDirectory(directoryName string) error {
-	files, err := ioutil.ReadDir(".")
+//PathDirLocationLogFiles место расположения лог-файлов приложения
+type PathDirLocationLogFiles struct {
+	pathLogFiles string
+}
+
+type mothPathConfig struct {
+	PathLogFiles string `json:"pathLogFiles"`
+}
+
+//New конструктор для огранизации записи лог-файлов
+func New() *PathDirLocationLogFiles {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var mpc mothPathConfig
+
+	//читаем основной конфигурационный файл в формате JSON
+	err = readMainConfig(dir+"/config.json", &mpc)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var pathDirLocationLogFiles PathDirLocationLogFiles
+	pathDirLocationLogFiles.pathLogFiles = mpc.PathLogFiles
+
+	return &pathDirLocationLogFiles
+}
+
+//ReadMainConfig читает основной конфигурационный файл и сохраняет данные в MothConfig
+func readMainConfig(fileName string, mpc *mothPathConfig) error {
+	var err error
+	row, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(row, &mpc)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func createLogsDirectory(pathLogFiles, directoryName string) error {
+	files, err := ioutil.ReadDir(pathLogFiles)
 	if err != nil {
 		return err
 	}
@@ -23,7 +74,7 @@ func createLogsDirectory(directoryName string) error {
 		}
 	}
 
-	err = os.Mkdir(directoryName, 0777)
+	err = os.Mkdir(pathLogFiles+"/"+directoryName, 0777)
 	if err != nil {
 		return err
 	}
@@ -78,8 +129,8 @@ func compressLogFile(filePath string, fileName string, fileSize int64) error {
 }
 
 //LogMessage сохраняет в лог файлах сообщения об ошибках или информационные сообщения
-func LogMessage(typeMessage, message string) (err error) {
-	const logDirName = "logs"
+func (pdllf *PathDirLocationLogFiles) LogMessage(typeMessage, message string) (err error) {
+	const logDirName = "moth_go_logs"
 	const logFileSize = 100000000
 
 	fileNameTypeMessage := map[string]string{
@@ -91,15 +142,17 @@ func LogMessage(typeMessage, message string) (err error) {
 		return errors.New("'typeMessage' or 'message' empty variable")
 	}
 
-	if err = createLogsDirectory(logDirName); err != nil {
+	if err = createLogsDirectory(pdllf.pathLogFiles, logDirName); err != nil {
 		return err
 	}
 
-	_ = compressLogFile("./"+logDirName+"/", fileNameTypeMessage[typeMessage], logFileSize)
+	_ = compressLogFile(pdllf.pathLogFiles+"/"+logDirName+"/", fileNameTypeMessage[typeMessage], logFileSize)
 
 	var fileOut *os.File
-	fileOut, err = os.OpenFile("./"+logDirName+"/"+fileNameTypeMessage[typeMessage], os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	fileOut, err = os.OpenFile(pdllf.pathLogFiles+"/"+logDirName+"/"+fileNameTypeMessage[typeMessage], os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
+		fmt.Println(err)
+
 		return err
 	}
 

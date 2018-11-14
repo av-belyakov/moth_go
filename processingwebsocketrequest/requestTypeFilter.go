@@ -11,7 +11,8 @@ import (
 
 //RequestTypeFilter выполняет подготовку к обработки запросов по фильтрации
 func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf configure.MessageTypeFilter, ift *configure.InformationFilteringTask) {
-	fmt.Println("START function RequestTypeFilter...")
+	//инициализируем функцию конструктор для записи лог-файлов
+	saveMessageApp := savemessageapp.New()
 
 	//проверяем количество одновременно выполняемых задач
 	if ift.IsMaxConcurrentProcessFiltering(prf.RemoteIP, prf.AccessClientsConfigure.Addresses[prf.RemoteIP].MaxCountProcessFiltering) {
@@ -22,7 +23,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 			ExternalIP: prf.ExternalIP,
 			Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
 		}); err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 		return
 	}
@@ -36,7 +37,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 			ExternalIP: prf.ExternalIP,
 			Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
 		}); err != nil {
-			_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 		}
 		return
 	}
@@ -52,22 +53,16 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 				ExternalIP: prf.ExternalIP,
 				Wsc:        prf.AccessClientsConfigure.Addresses[prf.RemoteIP].WsConnection,
 			}); err != nil {
-				_ = savemessageapp.LogMessage("error", fmt.Sprint(err))
+				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 			return
 		}
-
-		fmt.Println("layoutListCompleted = ", layoutListCompleted)
 
 		//если компоновка списка не завершена
 		if !layoutListCompleted {
 			return
 		}
-
-		fmt.Println("START FILTERING FOR INDEXES *****************")
 	}
-
-	fmt.Println("------- TEST START FILTERING MESSAGE -----", mtf.Info.TaskIndex)
 
 	go ProcessingFiltering(prf, &mtf, ift)
 }
