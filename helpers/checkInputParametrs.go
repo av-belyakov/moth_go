@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -88,8 +87,6 @@ func checkFilesName(dirName string, listFiles []string, pattern *regexp.Regexp, 
 }
 
 func checkPathStorageFilterFiles(remoteIP string, mtdf configure.MessageTypeDownloadFiles, dfi *configure.DownloadFilesInformation) bool {
-	fmt.Println("function checkPathStorageFilterFiles START...")
-
 	patternCompile, err := regexp.Compile(regexpPatterns["pathDirectoryStoryFilesFiltering"])
 	if err != nil {
 		return false
@@ -181,8 +178,6 @@ func InputParametrsForFiltering(ift *configure.InformationFilteringTask, mtf *co
 	saveMessageApp := savemessageapp.New()
 
 	var ok bool
-
-	//fmt.Printf("%v", mtf.Info.Settings)
 
 	if (mtf.Info.Processing == "off") || (mtf.Info.Settings.UseIndexes && mtf.Info.Settings.CountPartsIndexFiles[0] > 0) {
 		return "", true

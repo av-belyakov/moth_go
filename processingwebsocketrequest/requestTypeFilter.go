@@ -45,6 +45,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 	if mtf.Info.Settings.UseIndexes {
 		//объединение списков файлов для задачи (возобновляемой или выполняемой на основе индексов)
 		layoutListCompleted, err := helpers.MergingFileListForTaskFilter(ift, &mtf)
+
 		if err != nil {
 			if err := errormessage.SendErrorMessage(errormessage.Options{
 				RemoteIP:   prf.RemoteIP,
@@ -55,6 +56,7 @@ func RequestTypeFilter(prf *configure.ParametrsFunctionRequestFilter, mtf config
 			}); err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			return
 		}
 
