@@ -283,7 +283,7 @@ func init() {
 	//читаем основной конфигурационный файл в формате JSON
 	err = readMainConfig(dir+"/config.json", &mc)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error reading configuration file, ", err)
 		os.Exit(1)
 	}
 

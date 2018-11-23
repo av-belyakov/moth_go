@@ -7,6 +7,7 @@ package configure
 
 import (
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -63,6 +64,8 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 	files, err := ioutil.ReadDir(currentDisk)
 	if err != nil {
 		result <- DateTimeRange{0, 0, err}
+
+		return
 	}
 
 	for _, file := range files {
@@ -75,6 +78,9 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 	if len(array) > 0 {
 		min = array[0]
 		max = array[len(array)-1]
+
+		array = []int{}
+		files = []os.FileInfo{}
 	}
 
 	result <- DateTimeRange{min, max, nil}
