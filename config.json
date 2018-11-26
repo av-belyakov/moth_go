@@ -18,7 +18,7 @@
         "/__CURRENT_DISK_2",
         "/__CURRENT_DISK_3",
         "/__CURRENT_DISK_4",
-	"/__CURRENT_DISK"
+        "/__CURRENT_DISK"
     ],
     "currentDisks_comments": "месторасположение фильтруемых файлов, АБСОЛЮТНЫЙ путь ",
     "pathStorageFilterFiles": "/home/TRAFFIC_FILTERS",

@@ -15,22 +15,15 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 	saveMessageApp := savemessageapp.New()
 
 	var sysInfo configure.SysInfo
-	var done = make(chan struct{})
-	var errorMessage = make(chan error)
-	defer func() {
-		close(done)
-		close(errorMessage)
-	}()
+
+	chanErrMsg := make(chan error)
+	done := make(chan struct{})
 
 	//временной интервал файлов хранящихся на дисках
-	go sysInfo.CreateFilesRange(done, errorMessage, mc.CurrentDisks)
-	select {
-	case <-done:
-		break
-	case <-errorMessage:
-		_ = saveMessageApp.LogMessage("error", fmt.Sprint(errorMessage))
-		break
-	}
+	go sysInfo.CreateFilesRange(done, chanErrMsg, mc.CurrentDisks)
+
+	//нагрузка на сетевых интерфейсах
+	go sysInfo.CreateLoadNetworkInterface(done, chanErrMsg)
 
 	//загрузка оперативной памяти
 	if err := sysInfo.CreateRandomAccessMemory(); err != nil {
@@ -42,18 +35,26 @@ func GetSystemInformation(out chan<- []byte, mc *configure.MothConfig) {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 	}
 
-	//нагрузка на сетевых интерфейсах
-	go sysInfo.CreateLoadNetworkInterface(done, errorMessage)
-	select {
-	case <-done:
-		break
-	case <-errorMessage:
-		break
-	}
-
 	//свободное дисковое пространство
 	if err := sysInfo.CreateDiskSpace(); err != nil {
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+	}
+
+	numGoProg := 2
+
+DONE:
+	for {
+		select {
+		case errMsg := <-chanErrMsg:
+			_ = saveMessageApp.LogMessage("error", fmt.Sprint(errMsg))
+
+		case <-done:
+			numGoProg--
+
+			if numGoProg == 0 {
+				break DONE
+			}
+		}
 	}
 
 	sysInfo.Info.IPAddress = mc.ExternalIPAddress

@@ -87,7 +87,7 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 }
 
 //CreateFilesRange формирует временный интервал файлов хранящихся на дисках
-func (sysInfo *SysInfo) CreateFilesRange(done chan<- struct{}, err chan<- error, cDisk []string) {
+func (sysInfo *SysInfo) CreateFilesRange(done chan<- struct{}, errMsg chan<- error, cDisk []string) {
 	var result = make(chan DateTimeRange, len(cDisk))
 	var resultDateTimeRange DateTimeRange
 
@@ -95,14 +95,14 @@ func (sysInfo *SysInfo) CreateFilesRange(done chan<- struct{}, err chan<- error,
 		go getDateTimeRange(result, disk)
 	}
 
-	go func() {
-		mapTimeInterval := make(map[string]map[string]int)
+	mapTimeInterval := make(map[string]map[string]int)
 
+	go func() {
 		for _, disk := range cDisk {
 			resultDateTimeRange = <-result
 
 			if resultDateTimeRange.ErrMsg != nil {
-				err <- resultDateTimeRange.ErrMsg
+				errMsg <- resultDateTimeRange.ErrMsg
 			}
 
 			mapTimeInterval[disk] = map[string]int{
@@ -112,7 +112,9 @@ func (sysInfo *SysInfo) CreateFilesRange(done chan<- struct{}, err chan<- error,
 
 			sysInfo.Info.TimeInterval = mapTimeInterval
 		}
+
 		close(result)
+
 		done <- struct{}{}
 	}()
 }
@@ -224,10 +226,12 @@ func getLoadingNetworkInterface(result chan<- AnswerNetIface, iface string) {
 }
 
 //CreateLoadNetworkInterface формирует информация о загрузке сетевых интерфейсов
-func (sysInfo *SysInfo) CreateLoadNetworkInterface(done chan<- struct{}, errMsg chan<- error) {
+func (sysInfo *SysInfo) CreateLoadNetworkInterface(done chan<- struct{}, errMsg chan<- error) { //done chan<- struct{}, errMsg chan<- error) {
 	stdout, err := exec.Command("sh", "-c", "ifconfig -s|awk '{print $1}'|sed '1d'").Output()
 	if err != nil {
 		errMsg <- err
+		done <- struct{}{}
+
 		return
 	}
 
@@ -252,12 +256,15 @@ func (sysInfo *SysInfo) CreateLoadNetworkInterface(done chan<- struct{}, errMsg 
 
 	for i := 0; i < len(listIface); i++ {
 		answerNetIface = <-answer
+
 		if answerNetIface.ErrMsg != nil {
 			errMsg <- answerNetIface.ErrMsg
 		}
 
 		mapLoadNetwork[answerNetIface.Iface] = answerNetIface.Data
 	}
+
 	sysInfo.Info.LoadNetwork = mapLoadNetwork
+
 	done <- struct{}{}
 }
