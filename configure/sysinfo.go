@@ -54,6 +54,7 @@ type AnswerNetIface struct {
 
 //DateTimeRange min и max время найденных файлов
 type DateTimeRange struct {
+	DiskName string
 	Min, Max int
 	ErrMsg   error
 }
@@ -63,7 +64,7 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 
 	files, err := ioutil.ReadDir(currentDisk)
 	if err != nil {
-		result <- DateTimeRange{0, 0, err}
+		result <- DateTimeRange{currentDisk, 0, 0, err}
 
 		return
 	}
@@ -83,7 +84,7 @@ func getDateTimeRange(result chan<- DateTimeRange, currentDisk string) {
 		files = []os.FileInfo{}
 	}
 
-	result <- DateTimeRange{min, max, nil}
+	result <- DateTimeRange{currentDisk, min, max, nil}
 }
 
 //CreateFilesRange формирует временный интервал файлов хранящихся на дисках
@@ -98,14 +99,14 @@ func (sysInfo *SysInfo) CreateFilesRange(done chan<- struct{}, errMsg chan<- err
 	mapTimeInterval := make(map[string]map[string]int)
 
 	go func() {
-		for _, disk := range cDisk {
+		for i := 0; i < len(cDisk); i++ {
 			resultDateTimeRange = <-result
 
 			if resultDateTimeRange.ErrMsg != nil {
 				errMsg <- resultDateTimeRange.ErrMsg
 			}
 
-			mapTimeInterval[disk] = map[string]int{
+			mapTimeInterval[resultDateTimeRange.DiskName] = map[string]int{
 				"dateMin": resultDateTimeRange.Min,
 				"dateMax": resultDateTimeRange.Max,
 			}
