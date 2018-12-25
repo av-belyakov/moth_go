@@ -57,6 +57,7 @@ DONE:
 		}
 	}
 
+	sysInfo.Info.VersionApp = mc.VersionApp
 	sysInfo.Info.IPAddress = mc.ExternalIPAddress
 	sysInfo.Info.CurrentDateTime = time.Now().Unix() * 1000
 	sysInfo.MessageType = "information"

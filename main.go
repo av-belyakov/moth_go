@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -104,6 +105,26 @@ func readSecondaryConfig(mc *configure.MothConfig) error {
 	mc.CurrentDisks = arrayStorages
 
 	return err
+}
+
+func getVersionApp() (string, error) {
+	content, err := ioutil.ReadFile("README.md")
+	if err != nil {
+		return "", err
+	}
+
+	//Application Moth_go, v1.35
+	//rx := regexp.MustCompile(`Moth_go\s(version=\d+\\.\d+)`)
+	pattern := `^Application\sMoth_go,\sv\d+\.\d+`
+	rx := regexp.MustCompile(pattern)
+	numVersion := rx.FindString(string(content))
+
+	if len(numVersion) == 0 {
+		return "version not found", nil
+	}
+
+	s := strings.Split(numVersion, " ")
+	return s[2], nil
 }
 
 //HandlerRequest обработчик HTTPS запроса к "/"
@@ -299,6 +320,13 @@ func init() {
 		_ = saveMessageApp.LogMessage("info", msg)
 		log.Println(msg)
 	}
+
+	//получаем номер версии приложения
+	version, err := getVersionApp()
+	if err != nil {
+		_ = saveMessageApp.LogMessage("err", "it is impossible to obtain the version number of the application")
+	}
+	mc.VersionApp = version
 
 	acc.Addresses = make(map[string]*configure.ClientsConfigure)
 	//иницилизируем канал для передачи системной информации

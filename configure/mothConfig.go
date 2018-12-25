@@ -7,6 +7,7 @@ package configure
 
 //MothConfig хранит настройки из конфигурационного файла приложения
 type MothConfig struct {
+	VersionApp                string
 	RootDir                   string
 	PathMainConfigurationFile string   `json:"pathMainConfigurationFile"`
 	AuthenticationToken       string   `json:"authenticationToken"`
