@@ -107,8 +107,8 @@ func readSecondaryConfig(mc *configure.MothConfig) error {
 	return err
 }
 
-func getVersionApp() (string, error) {
-	content, err := ioutil.ReadFile("README.md")
+func getVersionApp(mc *configure.MothConfig) (string, error) {
+	content, err := ioutil.ReadFile(mc.RootDir + "README.md")
 	if err != nil {
 		return "", err
 	}
@@ -124,6 +124,7 @@ func getVersionApp() (string, error) {
 	}
 
 	s := strings.Split(numVersion, " ")
+
 	return s[2], nil
 }
 
@@ -322,7 +323,7 @@ func init() {
 	}
 
 	//получаем номер версии приложения
-	version, err := getVersionApp()
+	version, err := getVersionApp(&mc)
 	if err != nil {
 		_ = saveMessageApp.LogMessage("err", "it is impossible to obtain the version number of the application")
 	}
