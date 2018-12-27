@@ -30,7 +30,6 @@ type CurrentDisk struct {
 
 //DetailedInformation системная информация
 type DetailedInformation struct {
-	VersionApp         string                    `json:"versionApp"`
 	IPAddress          string                    `json:"ipAddress"`
 	CurrentDateTime    int64                     `json:"currentDateTime"`
 	DiskSpace          []map[string]string       `json:"diskSpace"`

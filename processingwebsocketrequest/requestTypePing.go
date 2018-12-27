@@ -21,6 +21,7 @@ type InformationPong struct {
 	IPAddress                    string `json:"ipAddress"`
 	MaxCountProcessFiltering     int    `json:"maxCountProcessFiltering"`
 	CountTransmissionInformation int    `json:"countTransmissionInformation"`
+	VersionApp                   string `json:"versionApp"`
 }
 
 //MessageTypePong подтверждает настройки клиента
@@ -30,7 +31,7 @@ type MessageTypePong struct {
 }
 
 //RequestTypePing обрабатывает Ping запрос и отправляет ответ
-func (messageTypePing *MessageTypePing) RequestTypePing(remoteIP, externalIPAddress string, accessClientsConfigure *configure.AccessClientsConfigure) ([]byte, error) { //, out chan<- []byte) {
+func (messageTypePing *MessageTypePing) RequestTypePing(remoteIP string, mc *configure.MothConfig, accessClientsConfigure *configure.AccessClientsConfigure) ([]byte, error) {
 	//записываем полученные от flashlight данные в AccessClientConfigure
 	accessClientsConfigure.Addresses[remoteIP].CountTransmissionInformation = 0
 	accessClientsConfigure.Addresses[remoteIP].MaxCountProcessFiltering = messageTypePing.Info.MaxCountProcessFiltering
@@ -38,9 +39,10 @@ func (messageTypePing *MessageTypePing) RequestTypePing(remoteIP, externalIPAddr
 	messageTypePong := MessageTypePong{
 		MessageType: "pong",
 		Info: InformationPong{
-			IPAddress:                    externalIPAddress,
+			IPAddress:                    mc.ExternalIPAddress,
 			CountTransmissionInformation: 0,
 			MaxCountProcessFiltering:     messageTypePing.Info.MaxCountProcessFiltering,
+			VersionApp:                   mc.VersionApp,
 		},
 	}
 

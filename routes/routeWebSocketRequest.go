@@ -186,7 +186,7 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
-			msgTypePong, err := messageTypePing.RequestTypePing(remoteIP, mc.ExternalIPAddress, acc)
+			msgTypePong, err := messageTypePing.RequestTypePing(remoteIP, mc, acc)
 			if err != nil {
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
