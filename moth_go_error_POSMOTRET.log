@@ -1,0 +1,29 @@
+2019/01/31 15:17:20 конфигурационный файл zsensor.conf отсутствует, используем основной конфигурационный файл
+2019/01/31 15:17:20 The HTTPS server is running on ip address 195.161.164.22, port 13113
+
+2019/01/31 15:20:29 http: panic serving 81.177.34.205:45632: close of closed channel
+goroutine 318 [running]:
+net/http.(*conn).serve.func1(0xc0019aa0a0)
+	/usr/local/go/src/net/http/server.go:1746 +0xd0
+panic(0x6eadc0, 0x79af40)
+	/usr/local/go/src/runtime/panic.go:513 +0x1b9
+main.serverWss.func2(0xc0000c8300, 0xc0019b03c0, 0xc0013080e0, 0xd, 0xc000010c40)
+	/home/miastr/go/src/moth_go/main.go:218 +0x3f
+panic(0x6eac40, 0x994680)
+	/usr/local/go/src/runtime/panic.go:513 +0x1b9
+moth_go/processingwebsocketrequest.RequestTypeFilter(0xc0002331a0, 0xc000a741d0, 0x2, 0xc0006ba060, 0x20, 0x5c521050, 0x5c52e6c4, 0xc0003c66c0, 0x1, 0x4, ...)
+	/home/miastr/go/src/moth_go/processingwebsocketrequest/requestTypeFilter.go:18 +0xcc
+moth_go/routes.RouteWebSocketRequest(0xc0013080e0, 0xd, 0x9a0c20, 0x99f320, 0x99f318, 0x9a11c0, 0xc0000c8360)
+	/home/miastr/go/src/moth_go/routes/routeWebSocketRequest.go:240 +0x6f8
+main.serverWss(0x79e8c0, 0xc000f2c000, 0xc000f26000)
+	/home/miastr/go/src/moth_go/main.go:275 +0x3ed
+net/http.HandlerFunc.ServeHTTP(0x75f008, 0x79e8c0, 0xc000f2c000, 0xc000f26000)
+	/usr/local/go/src/net/http/server.go:1964 +0x44
+net/http.(*ServeMux).ServeHTTP(0x9a09a0, 0x79e8c0, 0xc000f2c000, 0xc000f26000)
+	/usr/local/go/src/net/http/server.go:2361 +0x127
+net/http.serverHandler.ServeHTTP(0xc000169c70, 0x79e8c0, 0xc000f2c000, 0xc000f26000)
+	/usr/local/go/src/net/http/server.go:2741 +0xab
+net/http.(*conn).serve(0xc0019aa0a0, 0x79ebc0, 0xc001b86280)
+	/usr/local/go/src/net/http/server.go:1847 +0x646
+created by net/http.(*Server).Serve
+	/usr/local/go/src/net/http/server.go:2851 +0x2f5

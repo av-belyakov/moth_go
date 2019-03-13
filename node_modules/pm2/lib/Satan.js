@@ -23,7 +23,7 @@ var fs          = require('fs');
 var p           = require('path');
 var Utility     = require('./Utility.js');
 var domain      = require('domain');
-var async       = require('async');
+var eachLimit   = require('async/eachLimit');
 
 /**
  * Export
@@ -96,7 +96,7 @@ Satan.processStateHandler = function(God) {
 
       var processes = God.getFormatedProcesses();
 
-      async.eachLimit(processes, cst.CONCURRENT_ACTIONS, function(proc, next) {
+      eachLimit(processes, cst.CONCURRENT_ACTIONS, function(proc, next) {
         console.log('Deleting process %s', proc.pm2_env.pm_id);
         God.deleteProcessId(proc.pm2_env.pm_id, function() {
           return next();
@@ -215,7 +215,6 @@ Satan.remoteWrapper = function() {
 
     killMe                  : God.killMe,
     notifyKillPM2           : God.notifyKillPM2,
-    forceGc                 : God.forceGc,
 
     findByFullPath          : God.findByFullPath,
 
@@ -329,7 +328,7 @@ Satan.launchDaemon = function launchDaemon(cb) {
   debug('Launching daemon');
 
   var SatanJS = p.resolve(p.dirname(module.filename), 'Satan.js');
-  var InteractorDaemonizer = require('./Interactor/InteractorDaemonizer.js');
+  var InteractorDaemonizer = require('@pm2/agent/src/InteractorClient');
 
   var node_args = [];
 
@@ -385,7 +384,7 @@ Satan.launchDaemon = function launchDaemon(cb) {
     debug('PM2 daemon launched with return message: ', msg);
     child.removeListener('error', onError);
     child.disconnect();
-    InteractorDaemonizer.launchAndInteract({}, function(err, data) {
+    InteractorDaemonizer.launchAndInteract({}, {}, function(err, data) {
       if (data)
         debug('Interactor launched');
       return cb ? cb(null, child) : false;

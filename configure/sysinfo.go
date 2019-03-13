@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-//Memory содержит информацию лб используемой ПО
+//Memory содержит информацию об используемой ПО
 type Memory struct {
 	Total int `json:"total"`
 	Used  int `json:"used"`

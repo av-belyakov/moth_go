@@ -3,15 +3,17 @@
  * Use of this source code is governed by a license that
  * can be found in the LICENSE file.
  */
-var vizion = require('vizion');
-var cst    = require('../constants.js');
-var async  = require('async');
-var debug  = require('debug')('pm2:worker');
-var domain = require('domain');
+var vizion    = require('vizion');
+var cst       = require('../constants.js');
+var eachLimit = require('async/eachLimit');
+var debug     = require('debug')('pm2:worker');
+var domain    = require('domain');
+var cronJob = require('cron').CronJob
 
 module.exports = function(God) {
   var timer = null;
 
+  God.CronJobs = new Map();
   God.Worker = {};
   God.Worker.is_running = false;
 
@@ -19,6 +21,35 @@ module.exports = function(God) {
     var proc = God.clusters_db[pm_id];
     return proc ? proc : null;
   };
+
+  var registerCron = function(proc_key) {
+    var proc = _getProcessById(proc_key.pm2_env.pm_id);
+
+    if (!proc ||
+        !proc.pm2_env ||
+        proc.pm2_env.pm_id === undefined ||
+        !proc.pm2_env.cron_restart ||
+        God.CronJobs.has(proc.pm2_env.pm_id))
+      return;
+
+    console.log('[PM2][WORKER] Registering a cron job on:', proc.pm2_env.pm_id);
+
+    var job = new cronJob({
+      cronTime: proc.pm2_env.cron_restart,
+      onTick: function() {
+        God.softReloadProcessId({id: proc.pm2_env.pm_id}, function(err, data) {
+          if (err)
+            console.error(err.stack || err);
+          return;
+        });
+      },
+      start: false
+    });
+
+    job.start();
+    God.CronJobs.set(proc.pm2_env.pm_id, job);
+  };
+
 
   var maxMemoryRestart = function(proc_key, cb) {
     var proc = _getProcessById(proc_key.pm2_env.pm_id);
@@ -47,6 +78,7 @@ module.exports = function(God) {
     }
   };
 
+  // Deprecated
   var versioningRefresh = function(proc_key, cb) {
     var proc = _getProcessById(proc_key.pm2_env.pm_id);
     if (!(proc &&
@@ -104,18 +136,27 @@ module.exports = function(God) {
         return console.error(err);
       }
 
-      async.eachLimit(data, 1, function(proc_key, next) {
-        if (!proc_key ||
-            !proc_key.pm2_env ||
-            proc_key.pm2_env.pm_id === undefined)
+      eachLimit(data, 1, function(proc, next) {
+        if (!proc || !proc.pm2_env || proc.pm2_env.pm_id === undefined)
           return next();
 
-        debug('[PM2][WORKER] Processing proc id:', proc_key.pm2_env.pm_id);
+        debug('[PM2][WORKER] Processing proc id:', proc.pm2_env.pm_id);
 
-        versioningRefresh(proc_key, function() {
-          maxMemoryRestart(proc_key, function() {
-            return next();
-          });
+        // Reset restart delay if application has an uptime of more > 30secs
+        if (proc.pm2_env.exp_backoff_restart_delay !== undefined &&
+            proc.pm2_env.prev_restart_delay && proc.pm2_env.prev_restart_delay > 0) {
+          var app_uptime = Date.now() - proc.pm2_env.pm_uptime
+          if (app_uptime > cst.EXP_BACKOFF_RESET_TIMER) {
+            var ref_proc = _getProcessById(proc.pm2_env.pm_id);
+            ref_proc.pm2_env.prev_restart_delay = 0
+            console.log(`[PM2][WORKER] Reset the restart delay, as app ${proc.name} is up for more than ${cst.EXP_BACKOFF_RESET_TIMER}`)
+          }
+        }
+
+        registerCron(proc);
+        // Check if application has reached memory threshold
+        maxMemoryRestart(proc, function() {
+          return next();
         });
       }, function(err) {
         God.Worker.is_running = false;

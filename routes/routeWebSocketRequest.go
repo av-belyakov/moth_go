@@ -228,6 +228,8 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 				_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			}
 
+			_ = saveMessageApp.LogMessage("info", "resived message FILTERING type")
+
 			prf := configure.ParametrsFunctionRequestFilter{
 				RemoteIP:               remoteIP,
 				ExternalIP:             mc.ExternalIPAddress,

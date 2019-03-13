@@ -45,7 +45,7 @@ Monit.reset = function(msg) {
 
   this.multi.charm.reset();
 
-  this.multi.write('\x1B[32m⌬ PM2 \x1B[39mmonitoring\x1B[96m (To go further check out https://app.keymetrics.io) \x1B[39m\n\n');
+  this.multi.write('\x1B[32m⌬ PM2 \x1B[39mmonitoring\x1B[96m (To go further check out https://app.pm2.io) \x1B[39m\n\n');
 
   if(msg) {
     this.multi.write(msg);
@@ -116,7 +116,7 @@ Monit.refresh = function(processes) {
       //this is to avoid a print issue when the process is restarted for example
       //we might also check for the pid but restarted|restarting will be rendered bad
       if(this.bars[proc.pm_id] && proc.pm2_env.status !== this.bars[proc.pm_id].status) {
-        debug('bars for %s does not exists', proc.pm_id);
+        debug('bars for %s does not exist', proc.pm_id);
         this.addProcesses(processes);
         break;
       }

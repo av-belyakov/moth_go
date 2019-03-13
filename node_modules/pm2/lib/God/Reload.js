@@ -11,7 +11,6 @@
  * @project PM2
  */
 
-var async         = require('async');
 var cst           = require('../../constants.js');
 var Utility       = require('../Utility.js');
 
@@ -123,8 +122,6 @@ function hardReload(God, id, wait_msg, cb) {
   old_worker.pm2_env.pm_id = t_key;
   old_worker.pm_id = t_key;
 
-  new_env.wait_ready = false;
-
   God.executeApp(new_env, function(err, new_worker) {
     if (err) return cb(err);
 
@@ -174,7 +171,7 @@ function hardReload(God, id, wait_msg, cb) {
 module.exports = function(God) {
 
   /**
-   * GracefulReload
+   * Reload
    * @method softReloadProcessId
    * @param {} id
    * @param {} cb
@@ -191,8 +188,8 @@ module.exports = function(God) {
         God.clusters_db[id].pm2_env.exec_mode == 'cluster_mode' &&
         !God.clusters_db[id].pm2_env.wait_ready) {
 
-      Utility.extendExtraConfig(God.clusters_db[id], opts);
       Utility.extend(God.clusters_db[id].pm2_env.env, opts.env);
+      Utility.extendExtraConfig(God.clusters_db[id], opts);
 
       return softReload(God, id, cb);
     }
@@ -219,8 +216,8 @@ module.exports = function(God) {
     if (God.clusters_db[id].pm2_env.status == cst.ONLINE_STATUS &&
         God.clusters_db[id].pm2_env.exec_mode == 'cluster_mode') {
 
-      Utility.extendExtraConfig(God.clusters_db[id], opts);
       Utility.extend(God.clusters_db[id].pm2_env.env, opts.env);
+      Utility.extendExtraConfig(God.clusters_db[id], opts);
 
       var wait_msg = God.clusters_db[id].pm2_env.wait_ready ? 'ready' : 'listening';
       return hardReload(God, id, wait_msg, cb);

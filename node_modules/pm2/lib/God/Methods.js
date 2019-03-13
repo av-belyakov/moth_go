@@ -11,10 +11,8 @@
  * @project PM2
  */
 var p             = require('path');
-var Utility       = require('../Utility');
 var treekill      = require('../TreeKill');
 var cst           = require('../../constants.js');
-var debug         = require('debug')('pm2:methods');
 
 /**
  * Description
@@ -167,9 +165,9 @@ module.exports = function(God) {
         clearInterval(timer);
         return cb(null, true);
       }
-      console.log('pid=%d msg=failed to kill - retrying in 100ms', pid);
+      console.log('pid=%d msg=failed to kill - retrying in %dms', pid, pm2_env.kill_retry_time);
       return false;
-    }, 100);
+    }, pm2_env.kill_retry_time);
 
     timeout = setTimeout(function() {
       clearInterval(timer);
@@ -245,23 +243,7 @@ module.exports = function(God) {
   God.resetState = function(pm2_env) {
     pm2_env.created_at = Date.now();
     pm2_env.unstable_restarts = 0;
-  };
-
-  /**
-   * Description
-   * @method forcegc
-   * @return
-   */
-  God.forceGc = function(opts, cb) {
-    if (global.gc) {
-      global.gc();
-      debug('Garbage collection triggered successfully');
-      if (cb) cb(null, {success: true});
-    }
-    else {
-      debug('Garbage collection failed');
-      if (cb) cb(null, {success: false});
-    }
+    pm2_env.prev_restart_delay = 0;
   };
 
 };

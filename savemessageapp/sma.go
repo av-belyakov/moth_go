@@ -20,6 +20,7 @@ type PathDirLocationLogFiles struct {
 	pathLogFiles string
 }
 
+//mothPathConfig путь до директории с лог-файлами
 type mothPathConfig struct {
 	PathLogFiles string `json:"pathLogFiles"`
 }
