@@ -220,20 +220,16 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 		chanEndGoroutin <- struct{}{}
 
-		c.Close()
+		/*		c.Close()
 
-		//удаляем информацию о соединении из типа acc
-		delete(acc.Addresses, remoteIP)
-		_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
+				//удаляем информацию о соединении из типа acc
+				delete(acc.Addresses, remoteIP)
+				_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
 
-		/*		if _, ok := acc.Addresses[remoteIP]; !ok {
-				fmt.Println(ok, "--- --- ---- IPADDRESS ", remoteIP, "NOT FOUND, WEBSOCKET DISCONNECT")
-			}*/
+				//при разрыве соединения удаляем задачу по скачиванию файлов
+				dfi.DelTaskDownloadFiles(remoteIP)
 
-		//при разрыве соединения удаляем задачу по скачиванию файлов
-		dfi.DelTaskDownloadFiles(remoteIP)
-
-		fmt.Println("websocket disconnect whis ip", remoteIP)
+				fmt.Println("websocket disconnect whis ip", remoteIP) */
 	}()
 
 	acc.Addresses[remoteIP].WsConnection = c

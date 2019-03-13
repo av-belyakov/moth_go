@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"moth_go/configure"
 	"moth_go/processingwebsocketrequest"
@@ -173,6 +174,17 @@ func RouteWebSocketRequest(remoteIP string, acc *configure.AccessClientsConfigur
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
+			c.Close()
+
+			//удаляем информацию о соединении из типа acc
+			delete(acc.Addresses, remoteIP)
+			_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
+
+			//при разрыве соединения удаляем задачу по скачиванию файлов
+			dfi.DelTaskDownloadFiles(remoteIP)
+
+			log.Println("websocket disconnect whis ip", remoteIP)
+
 			_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
 			break
 		}
