@@ -139,14 +139,6 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 		<body><h1>Access denied. For additional information, please contact the webmaster.</h1></body>
 		</html>`)
 
-	stringToken := ""
-	for headerName := range req.Header {
-		if headerName == "Token" {
-			stringToken = req.Header[headerName][0]
-			continue
-		}
-	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Language", "en")
 
@@ -154,6 +146,21 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
+
+	//fmt.Println("---- http header accepted from the user ----")
+
+	stringToken := ""
+	for headerName := range req.Header {
+
+		//fmt.Printf("Header: %v, value: %v\n", headerName, req.Header[headerName][0])
+
+		if headerName == "Token" {
+			stringToken = req.Header[headerName][0]
+			continue
+		}
+	}
+
+	//fmt.Println("\ttokent is valide: ", (stringToken == settingsHTTPServer.Token))
 
 	if (len(stringToken) == 0) || (stringToken != settingsHTTPServer.Token) {
 		w.Header().Set("Content-Length", strconv.Itoa(utf8.RuneCount(bodyHTTPResponseError)))
@@ -169,6 +176,8 @@ func (settingsHTTPServer *SettingsHTTPServer) HandlerRequest(w http.ResponseWrit
 			remoteAddr := strings.Split(req.RemoteAddr, ":")[0]
 
 			acc.Addresses[remoteAddr] = &configure.ClientsConfigure{}
+
+			//log.Printf("client configure %v\n", acc)
 		}
 	}
 }
@@ -178,7 +187,12 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 	saveMessageApp := savemessageapp.New()
 
 	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
+
+	fmt.Println("remote ip client is:", remoteIP)
+
 	if !acc.IPAddressIsExist(remoteIP) {
+		//log.Println("access for the user with ipaddress " + req.RemoteAddr + " is prohibited")
+
 		w.WriteHeader(401)
 		_ = saveMessageApp.LogMessage("error", "access for the user with ipaddress "+req.RemoteAddr+" is prohibited")
 		return
@@ -210,27 +224,24 @@ func serverWss(w http.ResponseWriter, req *http.Request) {
 
 	c, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
+		//log.Printf("connection close, error %v\n", err)
+
 		c.Close()
 
 		_ = saveMessageApp.LogMessage("error", fmt.Sprint(err))
+
+		return
 	}
 	defer func() {
+		//log.Printf("DEFER close function")
+
 		close(acc.ChanInfoDownloadTaskGetMoth)
 		close(acc.ChanInfoDownloadTaskSendMoth)
 
 		chanEndGoroutin <- struct{}{}
-
-		/*		c.Close()
-
-				//удаляем информацию о соединении из типа acc
-				delete(acc.Addresses, remoteIP)
-				_ = saveMessageApp.LogMessage("info", "disconnect for IP address "+remoteIP)
-
-				//при разрыве соединения удаляем задачу по скачиванию файлов
-				dfi.DelTaskDownloadFiles(remoteIP)
-
-				fmt.Println("websocket disconnect whis ip", remoteIP) */
 	}()
+
+	//log.Printf("the connection is established")
 
 	acc.Addresses[remoteIP].WsConnection = c
 
@@ -366,8 +377,7 @@ func main() {
 	http.HandleFunc("/wss", serverWss)
 
 	err = http.ListenAndServeTLS(settingsHTTPServer.IP+":"+settingsHTTPServer.Port, mc.PathCertFile, mc.PathKeyFile, nil)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
+
+	log.Println(err)
+	os.Exit(1)
 }
