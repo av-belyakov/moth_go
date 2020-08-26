@@ -1,5 +1,5 @@
 {
-    "pathMainConfigurationFile": "/opt/zsensor/conf/zsensor.conf",
+    "pathMainConfigurationFile": "/opt/zsensor/conf/zsensor1.conf",
     "pathMainConfigurationFile_comments": "путь до основного конфигурационного файла",
     "authenticationToken": "a60cb0aa61613d4983086c0a12207",
     "authenticationToken_comments": "идентификационный токен",
@@ -12,7 +12,7 @@
     "pathKeyFile": "keys/moth_private_key.pem",
     "pathKeyFile_comments": "ОТНОСИТЕЛЬНЫЙ путь до файла с приватным ключем",
     "typeAreaNetwork": 1,
-    "typeAreaNetwork_comments": "тип локальной сети 1 - IP, 2 - PPPoE",
+    "typeAreaNetwork_comments": "тип локальной сети 1 - IP or Vlan, 2 - PPPoE + IP, 3 - Vlan + PPPoE + IP, 4 - PPPoE + Vlan + IP",
     "currentDisks": [
         "/__CURRENT_DISK_1",
         "/__CURRENT_DISK_2",
@@ -23,7 +23,7 @@
     "currentDisks_comments": "месторасположение фильтруемых файлов, АБСОЛЮТНЫЙ путь ",
     "pathStorageFilterFiles": "/home/TRAFFIC_FILTERS",
     "pathStorageFilterFiles_comments": "местоположение файлов полученных в результате фильтрации",
-    "refreshIntervalSysInfo": 10,
+    "refreshIntervalSysInfo": 120,
     "refreshIntervalSysInfo_comments": "интервал обновления системной информации",
     "pathLogFiles": "/var/log",
     "pathLogFiles_comments": "место расположение лог-файла приложения"

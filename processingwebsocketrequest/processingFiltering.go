@@ -230,6 +230,8 @@ func patternBashScript(ppf PatternParametersFiltering, mtf *configure.MessageTyp
 	listTypeArea := map[int]string{
 		1: " ",
 		2: " '(pppoes && ip)' and ",
+		3: " '(vlan && pppoes && ip)' and ",
+		4: " '(pppoes && vlan && ip)' and ",
 	}
 
 	pattern := " tcpdump -r " + ppf.DirectoryName + "/$files"
